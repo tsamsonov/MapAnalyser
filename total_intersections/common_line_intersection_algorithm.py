@@ -67,6 +67,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         self._shortHelp = "This is an algorithm that calculates the total number of intersections of linear layers"
         self.define_help_info("total_intersections_help.txt")
 
+
     def initAlgorithm(self, config):
         """
         Here we define the inputs and output of the algorithm, along
@@ -99,8 +100,8 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         intersections = self.get_common_intersection(merged_layer, feedback)
         (sink, dest_id) = self.parameterAsSink(
             parameters, self.OUTPUT,
-            context, QgsFields(), 
-            QgsWkbTypes.Point, 
+            context, QgsFields(),
+            QgsWkbTypes.Point,
             merged_layer.sourceCrs()
         )
 
@@ -111,61 +112,17 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
                 break
 
             feature = QgsFeature()
-            feature.setGeometry(
-                QgsGeometry().fromPointXY(QgsPointXY(point[0], point[1]))
-            )
+            feature.setGeometry(QgsGeometry().fromPointXY(QgsPointXY(point[0], point[1])))
             sink.addFeature(feature, QgsFeatureSink.FastInsert)
 
         feedback.setProgress(100)
+
         layer_names = ' '.join([layer.name() for layer in layers])
 
         return {
             'Layers': layer_names,
             'The number of intersections': len(intersections)
             }
-        # systcoord = "Point?crs=" + layer.sourceCrs().authid()
-        # intersection_points_layer = QgsVectorLayer(systcoord, 'intersections', 'memory')
-        # data_provider = intersection_points_layer.dataProvider()
-
-        # for point in intersections:
-        #     feature = QgsFeature()
-        #     feature.setGeometry(QgsGeometry().fromPointXY(QgsPointXY(point[0], point[1])))
-        #     data_provider.addFeature(feature)
-
-        # QgsProject.instance().addMapLayer(intersection_points_layer)
-
-
-        # for feature in layer.getFeatures():
-        #     geom = feature.geometry()
-        #     parts_of_geometry = list(geom.parts())
-        #     print(str(len(parts_of_geometry)) + ' : ' + str(parts_of_geometry))
-
-        # source = self.parameterAsSource(parameters, self.INPUT, context)
-        # (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT,
-        #         context, source.fields(), source.wkbType(), source.sourceCrs())
-        #
-        # # Compute the number of steps to display within the progress bar and
-        # # get features from source
-        # total = 100.0 / source.featureCount() if source.featureCount() else 0
-        # features = source.getFeatures()
-        #
-        # for current, feature in enumerate(features):
-        #     # Stop the algorithm if cancel button has been clicked
-        #     if feedback.isCanceled():
-        #         break
-        #
-        #     # Add a feature in the sink
-        #     sink.addFeature(feature, QgsFeatureSink.FastInsert)
-        #
-        #     # Update the progress bar
-        #     feedback.setProgress(int(current * total))
-
-        # Return the results of the algorithm. In this case our only result is
-        # the feature sink which contains the processed features, but some
-        # algorithms may return multiple feature sinks, calculated numeric
-        # statistics, etc. These should all be included in the returned
-        # dictionary, with keys matching the feature corresponding parameter
-        # or output names.
 
 
     def get_common_intersection(self, layer, feedback):
@@ -184,10 +141,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
             self.raise_exception('layer geometry is not line geometry')
 
         feedback.pushInfo(self.tr('Receiving endpoints of the lines'))
-        # end_points = Dict.empty(
-        #     key_type=types.UniTuple(int64,2),
-        #     value_type=types.int64,
-        # )
+        
         end_points = {}
 
         for feature in layer.getFeatures():
@@ -227,223 +181,15 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
 
         feedback.setProgress(80)
 
-        set_of_intersections = set(
-            (f.geometry().asPoint().x(), f.geometry().asPoint().y())
-            for f in intersections_layer.getFeatures()
-            )
+        set_of_intersections = set((f.geometry().asPoint().x(), f.geometry().asPoint().y()) for f in intersections_layer.getFeatures())
 
         feedback.pushInfo(self.tr('Getting true intersection points'))
 
-        intersections = self.get_true_intersections(
-            set_of_intersections, end_points
-            )
+        intersections = self.get_true_intersections(set_of_intersections, end_points)
 
         feedback.setProgress(90)
 
         return intersections
-
-        #
-        # params = {'INPUT': layer, 'INTERSECT': layer, 'OUTPUT': 'memory:'}
-        # result = processing.run('qgis:lineintersections', params)
-        # intersections_layer = result['OUTPUT']
-        #
-        # for feature in intersections_layer.getFeatures():
-        #     geom = feature.geometry()
-        #     point = geom.asPoint()
-        #     points[(point.x(), point.y())] = [False, 1]
-
-        # points = {} норм, но не считает то, что нужно
-        # intersections = set()
-        #
-        #
-        # for feature in layer.getFeatures():
-        #     geom = feature.geometry()
-        #
-        #     for part in geom.parts():
-        #         verts = list(part.vertices())
-        #         # если пусто?
-        #         start = verts[0]
-        #         start_cortege = (start.x(), start.y())
-        #
-        #         if start_cortege in points:
-        #             value = points.get(start_cortege)
-        #
-        #             if value[0]:
-        #                 value[1] += 1
-        #                 points[start_cortege][1] = value[1]
-        #
-        #                 if value[1] > 2:
-        #                     intersections.add(start_cortege)
-        #             else:
-        #                 value[1] += 1
-        #                 points[start_cortege][1] = value[1]
-        #
-        #                 intersections.add(start_cortege)
-        #         else:
-        #             points[start_cortege] = [True, 1]
-        #
-        #         end = verts[len(verts) - 1]
-        #         end_cortege = (end.x(), end.y())
-        #
-        #         if end_cortege in points:
-        #             value = points.get(end_cortege)
-        #
-        #             if value[0]:
-        #                 value[1] += 1
-        #                 points[end_cortege][1] = value[1]
-        #
-        #                 if value[1] > 2:
-        #                     intersections.add(end_cortege)
-        #             else:
-        #                 value[1] += 1
-        #                 points[end_cortege][1] = value[1]
-        #
-        #                 intersections.add(end_cortege)
-        #         else:
-        #             points[end_cortege] = [True, 1]
-        #
-        #
-        #         for i in range(1, len(verts) - 2):
-        #             v = verts[i]
-        #             v_cortege = (v.x(), v.y())
-        #
-        #             if v_cortege in points:
-        #                 points[v_cortege][1] += 1
-        #                 intersections.add(v_cortege)
-        #             else:
-        #                 points[v_cortege] = [False, 1] норм, но не считает то, что нужно
-
-                # if end_cortege in points:
-                #     points[end_cortege] += 1
-                #     count = points.get(end_cortege)
-                #
-                #     if count > 2:
-                #         intersections.add((end.x(), end.y()))
-                # else:
-                #     points[end_cortege] = 1
-                #
-                # for i in range(1, len(verts) - 2):
-                #     v = verts[i]
-                #     v_cortege = (v.x(), v.y(), False)
-                #
-                #     if v_cortege in points:
-                #         points[v_cortege] += 1
-                #         intersections.add((v.x(), v.y()))
-                #     else:
-                #         points[v_cortege] = 1
-
-        # for feature in layer.getFeatures():
-        #     geom = feature.geometry()
-        #
-        #     for part in geom.parts(): # если не multi, то будет 1 кусок
-        #         verts = list(part.vertices())
-        #         first = (verts[0].x(), verts[0].y())
-        #         p = points.get(first)
-        #
-        #         if p:
-        #             continue
-        #         elif p is None:
-        #             points()
-
-                # for v in part.vertices():
-                #     p = points.get()
-                #     if p:
-                #         continue
-                #     elif p is None:
-
-
-
-        # unique_points = set()
-        # intersections = set()
-        #
-        # for feature in layer.getFeatures():
-        #     geom = feature.geometry()
-        #
-        #     verts = set()
-        #
-        #     for part in geom.parts():
-        #         for v in part.vertices():
-        #             verts.add((v.x(), v.y()))
-        #
-        #     if len(list(geom.parts())) > 1:
-        #         print(verts)
-        #
-        #     for v in verts:
-        #         if v in unique_points:
-        #             intersections.add(v)
-        #         else:
-        #             unique_points.add(v)
-        #
-        # print(len(intersections))
-
-        # systcoord = "Point?crs=" + layer.sourceCrs().authid()
-        # intersection_points_layer = QgsVectorLayer(systcoord, 'intersections', 'memory')
-        # data_provider = intersection_points_layer.dataProvider()
-        #
-        # for point in intersections:
-        #     feature = QgsFeature()
-        #     feature.setGeometry(QgsGeometry().fromPointXY(QgsPointXY(point[0], point[1])))
-        #     data_provider.addFeature(feature)
-        #
-        # QgsProject.instance().addMapLayer(intersection_points_layer)
-
-        #
-        # end_points = []
-        #
-        # for feature in layer.getFeatures():
-        #     geom = feature.geometry()
-        #     parts_of_geometry = list(geom.parts())
-        #
-        #     for part in parts_of_geometry:  # можем сразу итерироваться по geom.parts(), если нет необходимости выделять
-        #         # в отдельный список
-        #         verts = list(part.vertices())  # можно оставить QgsPoint структуру, если с ней
-        #         # удобно работать
-        #         end_points.append(verts[0])
-        #         end_points.append(verts[(len(verts) - 1)])
-        #
-        # params = {'INPUT': layer, 'INTERSECT': layer, 'OUTPUT': 'memory:'}
-        # result = processing.run('qgis:lineintersections', params)
-        # intersections_layer = result['OUTPUT']
-        #
-        # print(len(list(intersections_layer.getFeatures())))
-        #
-        # final_intersection_points = []
-        #
-        # for feature in intersections_layer.getFeatures():
-        #     geom = feature.geometry()
-        #     parts_of_geometry = list(geom.parts())
-        #
-        #     for part in parts_of_geometry:
-        #         for v in part.vertices():
-        #             if (end_points.count(v) != 2):
-        #                 final_intersection_points.append(v)
-        #
-        # print(len(final_intersection_points))
-
-        # systcoord = "Point?crs=" + layer.sourceCrs().authid()
-        # intersection_points_layer = QgsVectorLayer(systcoord, 'intersections', 'memory')
-        # data_provider = intersection_points_layer.dataProvider()
-        #
-        # for point in final_intersection_points:
-        #     feature = QgsFeature()
-        #     feature.setGeometry(QgsGeometry().fromPointXY(QgsPointXY(point)))
-        #     data_provider.addFeature(feature)
-        #
-        # QgsProject.instance().addMapLayer(intersection_points_layer)
-
-    # def get_verts(self, features):
-    #     for feature in features():
-    #         geom = feature.geometry()
-    #         parts_of_geometry = list(geom.parts())
-    #
-    #         for part in parts_of_geometry:  # можем сразу итерироваться по geom.parts(), если нет необходимости выделять
-    #             # в отдельный список
-    #             verts = [(v.x(), v.y()) for v in part.vertices()]  # можно оставить QgsPoint структуру, если с ней
-    #             # удобно работать
-    #
-    #     return verts
-
-    #types.Set(types.UniTuple(numba.int64,2))
 
 
     def get_true_intersections(self, intersections, end_points):
@@ -491,7 +237,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
             if layer.geometryType() == QgsWkbTypes.LineGeometry
             ]
         merge_proc_params = {
-            'LAYERS': layer_names, 
+            'LAYERS': layer_names,
             'OUTPUT': 'memory:'
             }
         result = processing.run('qgis:mergevectorlayers', merge_proc_params, None)
@@ -562,29 +308,13 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
 
         :help_file: File name
         """
+
         directory = os.path.dirname(__file__)
         file_name = os.path.join(directory, help_file)
+
         try:
             with open(file_name, 'r') as f:
                 text = f.read()
                 self._shortHelp += text
-        except:
+        except Exception:
             pass
-
-
-    # def flags(self):
-    #     return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
-
-# types.Set(types.UniTuple(int64,2))(types.Set(types.UniTuple(int64,2)), types.DictType(types.UniTuple(int64,2), int64)),nopython=True
-# @jit()
-# def get_true_intersections(intersections, end_points):
-#     true_intersections = set()
-
-#     for point_cortege in intersections:
-#         if point_cortege in end_points:
-#             if end_points[point_cortege] != 2:
-#                 true_intersections.add(point_cortege)
-#         else:
-#             true_intersections.add(point_cortege)
-
-#     return true_intersections

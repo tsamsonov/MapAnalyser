@@ -89,6 +89,7 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
+        
         image = self.parameterAsFile(parameters, self.INPUT, context)
 
         if not image:
@@ -142,6 +143,7 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
         :param row: Csv rows
         :param delimiter: Csv delimiter
         '''
+
         if not path:
             self.raise_exception('output path is empty')
         if not header:
@@ -162,7 +164,7 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
 
             cout.writerows(rows)
             output_file.close()
-        except:
+        except Exception:
             self.raise_exception('error while writing to file')
 
 
@@ -226,6 +228,7 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
 
         :help_file: File name
         """
+
         directory = os.path.dirname(__file__)
         file_name = os.path.join(directory, help_file)
 
@@ -233,5 +236,5 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
             with open(file_name, 'r') as f:
                 text = f.read()
                 self._shortHelp += text
-        except:
+        except Exception:
             pass

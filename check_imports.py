@@ -12,6 +12,7 @@ def check(req_path):
 
     :param req_path: Path to the requirements file
     '''
+
     packages = []
 
     try:

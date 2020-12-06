@@ -81,6 +81,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
+        
         default_extent = qgis.utils.iface.mapCanvas().extent()
         default_extent_value = '{0},{1},{2},{3}'.format(default_extent.xMinimum(),
                                                         default_extent.xMaximum(),
@@ -123,6 +124,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
+
         extent = self.parameterAsExtent(parameters, self.EXTENT, context)
 
         if not extent:
@@ -182,6 +184,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
 
         :param image_path: Path to image
         '''
+
         if not image_path:
             self.raise_exception('image_path is empty')
 
@@ -200,6 +203,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         :param canvas_name: Map name
         :param output_dir: Output directory for image
         '''
+
         if not extent:
             self.raise_exception('extent is empty')
 
@@ -216,62 +220,6 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
             self.raise_exception('output_dir is empty')
 
         file_name = '{0}/{1}.png'.format(output_dir, canvas_name)
-        # project = QgsProject.instance()
-        # manager = project.layoutManager()
-        # layout = QgsPrintLayout(project)
-        # layout.initializeDefaults()
-        # layout.setName(canvas_name)
-        # manager.addLayout(layout)
-
-        # mapa = QgsLayoutItemMap(layout)
-        # mapa.setRect(20, 20, 20, 20)
-
-        # ms = QgsMapSettings()
-        # ms.setLayers(list(QgsProject.instance().mapLayers().values()))
-        # rect = QgsRectangle(ms.fullExtent())
-        # rect.scale(1.0)
-        # ms.setExtent(rect)
-        # mapa.setExtent(rect)
-        # mapa.setBackgroundColor(QColor(255, 255, 255, 0))
-        # layout.addLayoutItem(mapa)
-
-        # mapa.attemptMove(QgsLayoutPoint(5, 20, QgsUnitTypes.LayoutMillimeters))
-        # mapa.attemptResize(QgsLayoutSize(180, 180, QgsUnitTypes.LayoutMillimeters))
-        # -----------------------------------------
-        # canvas = qgis.utils.iface.mapCanvas()
-        # canvas.setExtent(QgsRectangle(6499681.7294,6614682.6047,6762624.9596,6883145.8769), True)
-        # for layer in canvas.layers():
-        #     layer.triggerRepaint()
-        # canvas.saveAsImage('C:/Users/danii/Desktop/img/test.png', None, 'PNG')
-        # canvas.setExtent(extent)
-        # canvas.refreshAllLayers()
-        #canvas.saveAsImage(file_name, None, 'png')
-        # -----------------------------------------
-        # layers = list(QgsProject.instance().mapLayers().values())
-        # settings = QgsMapSettings()
-        # settings.setLayers(layers)
-        # settings.setDestinationCrs(layers[0].crs())
-        # settings.setBackgroundColor(QColor(255, 255, 255))
-        # settings.setOutputSize(QSize(800, 600))
-        # settings.setExtent(extent)
-        # settings.setDestinationCrs(layers[0].crs())
-        # render = QgsMapRendererParallelJob(settings)
-        # render.start()
-        # render.waitForFinished()
-        # img = render.renderedImage()
-        # img.save(file_name, "png")
-        # -----------------------------------------
-        # params = {
-        #     'EXTENT': extent,
-        #     'LAYER': merged_layer,
-        #     'MAKE_BACKGROUND_TRANSPARENT': False,
-        #     'MAP_THEME': '',
-        #     'MAP_UNITS_PER_PIXEL': 100,
-        #     'OUTPUT': file_name,
-        #     'TILE_SIZE': 1024
-        #     }
-
-        # processing.run("qgis:rasterize", params)
         settings = QgsMapSettings()
         settings.setLayers(qgis.utils.iface.mapCanvas().layers())
         settings.setBackgroundColor(QColor(255, 255, 255))
@@ -294,6 +242,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         :param row: Csv rows
         :param delimiter: Csv delimiter
         '''
+
         if not path:
             self.raise_exception('output path is empty')
 
@@ -308,7 +257,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
 
             cout.writerows(rows)
             output_file.close()
-        except:
+        except Exception:
             self.raise_exception('error while writing to file')
 
 
@@ -373,6 +322,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
 
         :help_file: File name
         """
+
         directory = os.path.dirname(__file__)
         file_name = os.path.join(directory, help_file)
 
@@ -380,5 +330,5 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
             with open(file_name, 'r') as f:
                 text = f.read()
                 self._shortHelp += text
-        except:
+        except Exception:
             pass

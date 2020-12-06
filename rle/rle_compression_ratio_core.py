@@ -10,6 +10,7 @@ def compress_ratio(pixels_matrix, matrix_length, channels_number, compare):
     :param channels_number: Number of the pixel channels
     :param compare: Сomparison method
     '''
+
     compressed_size = 1
 
     for i in range(1, matrix_length):
@@ -40,6 +41,7 @@ def simple_pixel_compare(pr, pg, pb, r, g, b):
     :param g: Green color value of the current pixel
     :param b: Blue color value of the current pixel
     '''
+
     return pr == r and pg == g and pb == b
 
 
@@ -55,4 +57,5 @@ def abs_pixel_compare(pr, pg, pb, r, g, b):
     :param g: Green color value of the current pixel
     :param b: Blue color value of the current pixel
     '''
+    
     return abs(pr - r) < 2 and abs(pg - g) < 2 and abs(pb - b) < 2

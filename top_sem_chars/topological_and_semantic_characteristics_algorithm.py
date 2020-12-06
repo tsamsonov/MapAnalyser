@@ -234,6 +234,7 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         :param row: Csv rows
         :param delimiter: Csv delimiter
         """
+
         if not path:
             self.raise_exception('output path is empty')
         if not header:
@@ -318,8 +319,10 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
 
         :help_file: File name
         """
+
         directory = os.path.dirname(__file__)
         file_name = os.path.join(directory, help_file)
+
         try:
             with open(file_name, 'r') as f:
                 text = f.read()

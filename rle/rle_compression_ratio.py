@@ -13,6 +13,7 @@ def get_ratio_with_simple_comparator(path):
 
     :param path: Path to image
     '''
+
     matrix, length, channels = get_matrix_data(path)
 
     return compress_ratio(matrix, length, channels, simple_pixel_compare)
@@ -24,6 +25,7 @@ def get_ratio_with_abs_comparator(path):
 
     :param path: Path to image
     '''
+
     matrix, length, channels = get_matrix_data(path)
 
     return compress_ratio(matrix, length, channels, abs_pixel_compare)
@@ -35,6 +37,7 @@ def get_matrix_data(path):
 
     :param path: Path to image
     '''
+
     pixels_matrix = cv2.imread(path)
     rows, cols, channels = pixels_matrix.shape
     new_size = rows * cols
