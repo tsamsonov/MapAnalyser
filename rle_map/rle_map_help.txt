@@ -1,0 +1,13 @@
+
+The compression ratio shows the ratio of the size of the compressed image of map to the original one.
+If the ratio is close to 1, the map is not compressed well, so the map can be considered complex.
+
+Input:
+--Canvas name: used in the name of the output image and the results table
+--Minimum extent to render: defines the part of the map that needs to be processed (default the map canvas extent used)
+--Output image width: width of the rendered map image
+--Output image height: height of the rendered map image
+
+Output:
+--Output file: the results table in .CSV format
+--Log: processing log

@@ -1,0 +1,7 @@
+
+The steps of the algorithm:
+1. Merge layers
+2. Find end points of lines
+3. Find intersections (this may take a long time, please keep calm)
+4. Get true intersections
+5. Build output layer

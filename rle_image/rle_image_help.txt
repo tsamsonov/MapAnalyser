@@ -1,0 +1,6 @@
+
+The compression ratio shows the ratio of the size of the compressed image to the original one.
+If the ratio is close to 1, the image is not compressed well, so the image can be considered complex.
+
+Input: .PNG image
+Output: .CSV file, processing log
