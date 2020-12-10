@@ -30,29 +30,33 @@ __copyright__ = '(C) 2020 by YSU'
 
 __revision__ = '$Format:%H$'
 
+import csv
+import os
+
+from math import sqrt, fabs
+from numba import jit
 from PyQt5.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
                        QgsFeatureSink,
                        QgsProcessingAlgorithm,
+                       QgsProcessingException,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterFeatureSink,
                        QgsProcessingParameterFileDestination,
                        QgsProcessingParameterFile,
+                       QgsProcessingParameterVectorLayer,
                        QgsWkbTypes)
 
 
 class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
     """
-    This is an example algorithm that takes a vector layer and
-    creates a new identical one.
-
-    It is meant to be used as an example of how to create your own
-    algorithms and explain methods and variables used to do it. An
-    algorithm like this will be available in all elements, and there
-    is not need for additional work.
-
-    All Processing algorithms should extend the QgsProcessingAlgorithm
-    class.
+    This is a class that calculates
+    for linear layers:
+        the number of bends in the line and the average bend characteristics:
+        height, length, area and baseline length
+    for polygon layers:
+        the total area, total perimeter, average polygon area in the layer and
+        average polygon perimeter in the layer
     """
 
     # Constants used to refer to parameters and outputs. They will be
@@ -62,31 +66,29 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
     OUTPUT = 'OUTPUT'
     INPUT = 'INPUT'
 
+
+    def __init__(self):
+        super().__init__()
+
+        self._shortHelp = "This algorithm calculates characteristics for linear and polygon layers"
+        self.define_help_info("layer_characteristics_help.txt")
+
+
     def initAlgorithm(self, config):
         """
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
 
-        # We add the input vector features source. It can have any kind of
-        # geometry.
         self.addParameter(
-            QgsProcessingParameterFeatureSource(
+            QgsProcessingParameterVectorLayer(
                 self.INPUT,
                 self.tr('Input layer'),
-                [QgsProcessing.TypeVectorAnyGeometry]
+                [QgsProcessing.TypeVectorLine,
+                QgsProcessing.TypeVectorPolygon]
             )
         )
 
-        # We add a feature sink in which to store our processed features (this
-        # usually takes the form of a newly created vector layer when the
-        # algorithm is run in QGIS).
-        # self.addParameter(
-        #     QgsProcessingParameterFeatureSink(
-        #         self.OUTPUT,
-        #         self.tr('Output layer')
-        #     )
-        # )
         self.addParameter(
             QgsProcessingParameterFileDestination(
                 self.OUTPUT,
@@ -100,69 +102,439 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
 
-        # Retrieve the feature source and sink. The 'dest_id' variable is used
-        # to uniquely identify the feature sink, and must be included in the
-        # dictionary returned by the processAlgorithm function.
-        source = self.parameterAsSource(parameters, self.INPUT, context)
-        csv = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
-        features = source.getFeatures()
-        total_characteristics = []
+        layer = self.parameterAsVectorLayer(parameters, self.INPUT, context)
+        output = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
 
-        for feature in features:  # бежим по объектам слоя
+        if not layer:
+            self.raise_exception('can\'t get a layer')
+
+        feedback.pushInfo(self.tr('The algorithm is running'))
+        total = 100.0 / layer.featureCount() if layer.featureCount() else 0
+
+        points_num = 0
+        bend_num = 0
+        ave_bend_area = 0.0
+        ave_bend_base_line_len = 0.0
+        ave_bend_height = 0.0
+        ave_bend_length = 0.0
+        total_polygon_area = 0.0
+        total_polygon_perimetr = 0.0
+        count = 0
+
+        for current, feature in enumerate(layer.getFeatures()):
+            if feedback.isCanceled():
+                break
+
             geom = feature.geometry()
-            parts_of_geometry = list(geom.parts())  # разбили объект на части (если single объект, то будет одна часть)
-            # не смотря на то, что разбиваем multi на single и обрабатываем multi как множество несвязанных single,
-            # можем понять, что они относятся к одному объекту, т.к. тут смотрим на конкретный объект и геометрию
-            for part in parts_of_geometry:  # можем сразу итерироваться по geom.parts(), если нет необходимости выделять
-                # в отдельный список
-                verts = [(v.x(), v.y()) for v in part.vertices()]  # можно оставить QgsPoint структуру, если с ней
-                # удобно работать
-                print(verts)
-                characteristics_of_feature_part = []  # если single, то получаются характеристики всего объекта
-                if geom.type() == QgsWkbTypes.LineGeometry:  # если линия, то считаем характеристики линии
-                    characteristics_of_feature_part = self.get_line_characteristics(verts)
-                elif geom.type() == QgsWkbTypes.PolygonGeometry:  # если полигон, то считаем характеристики полигона
-                    characteristics_of_feature_part = self.get_polygon_characteristics(verts)
+            is_single_type = QgsWkbTypes.isSingleType(geom.wkbType())
+
+            if geom.type() == QgsWkbTypes.LineGeometry:
+                if is_single_type:
+                    data_list = [(v.x(), v.y()) for v in geom.vertices()]
+
+                    if len(data_list) < 3:
+                        continue
+
+                    result = self.get(data_list)
+                    count = count + 1
+                    points_num += result[0]
+                    bend_num += result[1]
+                    ave_bend_area += result[2]
+                    ave_bend_base_line_len += result[3]
+                    ave_bend_height += result[4]
+                    ave_bend_length += result[5]
                 else:
-                    print("Unknown or invalid geometry")  # можно выбросить исключение
+                    for part in geom.parts():
+                        data_list = [(v.x(), v.y()) for v in part.vertices()]
 
-                # что-нибудь делаем с характеристиками, например, добавляем что-нибудь в total характеристики
+                        if len(data_list) < 3:
+                            continue
 
-            #print((len(parts_of_geometry), parts_of_geometry))
+                        result = self.get(data_list)
+                        count = count + 1
+                        points_num += result[0]
+                        bend_num += result[1]
+                        ave_bend_area += result[2]
+                        ave_bend_base_line_len += result[3]
+                        ave_bend_height += result[4]
+                        ave_bend_length += result[5]
+            elif geom.type() == QgsWkbTypes.PolygonGeometry:
+                if is_single_type:
+                    data_list = [(v.x(), v.y()) for v in geom.vertices()]
+
+                    if len(data_list) < 3:
+                        continue
+
+                    result = self.get(data_list)
+                    count = count+1
+                    points_num += result[0]
+                    bend_num += result[1]
+                    ave_bend_area += result[2]
+                    ave_bend_base_line_len += result[3]
+                    ave_bend_height += result[4]
+                    ave_bend_length += result[5]
+                    total_polygon_area += geom.area()
+                    total_polygon_perimetr += geom.length()
+                else:
+                    for part in geom.parts():
+                        data_list = [(v.x(), v.y()) for v in part.vertices()]
+
+                        if len(data_list) < 3:
+                            continue
+
+                        result = self.get(data_list)
+                        count = count + 1
+                        points_num += result[0]
+                        bend_num += result[1]
+                        ave_bend_area += result[2]
+                        ave_bend_base_line_len += result[3]
+                        ave_bend_height += result[4]
+                        ave_bend_length += result[5]
+                    total_polygon_area += geom.area()
+                    total_polygon_perimetr += geom.length()
+            else:
+                break
+
+            feedback.setProgress(int(current * total))
+
+        header = [
+            'layer',
+            'number of points',
+            'number of bends',
+            'average area of bends',
+            'average length of bends baseline',
+            'average height of bends',
+            'average length of the bends',
+            'common polygons area',
+            'common polygons perimetr',
+            'average polygons area',
+            'average polygons perimetr',
+        ]
+        row = [{
+            header[0]: layer.name(),
+            header[1]: points_num,
+            header[2]: bend_num,
+            header[3]: ave_bend_area / bend_num if bend_num > 0 else 0.0,
+            header[4]: ave_bend_base_line_len / bend_num if bend_num > 0 else 0.0,
+            header[5]: ave_bend_height / bend_num if bend_num > 0 else 0.0,
+            header[6]: ave_bend_length / bend_num if bend_num > 0 else 0.0,
+            header[7]: total_polygon_area,
+            header[8]: total_polygon_perimetr,
+            header[9]: total_polygon_area / count if count > 0 else 0.0,
+            header[10]: total_polygon_perimetr / count if count > 0 else 0.0,
+        }]
+
+        if output:
+            feedback.pushInfo(self.tr('Writing to file'))
+            self.write_to_file(output, header, row, ';')
+
+        return row[0]
 
 
-        # (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT,
-        #         context, source.fields(), source.wkbType(), source.sourceCrs())
+    def distance(self, pointA, pointB):
+        """
+        Returns the distance between two points
 
-        # Compute the number of steps to display within the progress bar and
-        # get features from source
-        # total = 100.0 / source.featureCount() if source.featureCount() else 0
-        # features = source.getFeatures()
-        #
-        # for current, feature in enumerate(features):
-        #     # Stop the algorithm if cancel button has been clicked
-        #     if feedback.isCanceled():
-        #         break
-        #
-        #     # Add a feature in the sink
-        #     sink.addFeature(feature, QgsFeatureSink.FastInsert)
-        #
-        #     # Update the progress bar
-        #     feedback.setProgress(int(current * total))
+        :param pointA: first point
+        :param pointB: second point
+        """
 
-        # Return the results of the algorithm. In this case our only result is
-        # the feature sink which contains the processed features, but some
-        # algorithms may return multiple feature sinks, calculated numeric
-        # statistics, etc. These should all be included in the returned
-        # dictionary, with keys matching the feature corresponding parameter
-        # or output names.
-        return {self.OUTPUT: "hi"}
+        return sqrt((pointA[0] - pointB[0]) ** 2 + (pointA[1] - pointB[1]) ** 2)
 
-    def get_line_characteristics(self, line):
-        return (1, 2, 3)
 
-    def get_polygon_characteristics(self, polygon):
-        return (1, 2, 3)
+    def area(self, pointA, pointB, pointC):
+        """
+        Returns the area of the triangle
+
+        :param pointA: first point
+        :param pointB: second point
+        :param pointC: third point
+        """
+
+        a = self.distance(pointA, pointB)
+        b = self.distance(pointB, pointC)
+        c = self.distance(pointA, pointC)
+        pr = (a + b + c) / 2
+        epsilon = 0.001
+
+        if (fabs(pr - a) < epsilon or
+            fabs(pr - b) < epsilon or
+            fabs(pr - c) < epsilon):
+            return 0
+
+        return sqrt(pr * (pr - a) * (pr - b) * (pr - c))
+
+
+    def orientation(self, pointA, pointB, pointC):
+        """
+        Computes the orientation of three-point bend
+
+        :param pointA: first point
+        :param pointB: second point
+        :param pointC: third point
+        """
+
+        direction = ((pointB[0] - pointA[0]) * (pointC[1] - pointA[1]) -
+                    (pointC[0] - pointA[0]) * (pointB[1] - pointA[1]))
+
+        return direction >= 0
+
+
+    def bend_area(self, bend):
+        """
+        Returns the area of the bend
+
+        :param bend: point representation of a bend
+        """
+
+        count = len(bend)
+
+        if count < 3:
+            return 0.0
+
+        count = count-1
+        result = 0
+        i = 0
+
+        while i < count:
+            result += (bend[i][0] + bend[i + 1][0]) * (bend[i][1] - bend[i + 1][1])
+            i = i + 1
+
+        result += (bend[count ][0] + bend[0][0]) * (bend[count ][1] - bend[0][1])
+
+        return fabs(result / 2)
+
+
+    def bend_length(self, bend):
+        """
+        Returns the length of the bend
+
+        :param bend: point representation of a bend
+        """
+
+        count = len(bend)
+
+        if count < 3:
+            return 0.0
+
+        result = 0.0
+        i = 0
+
+        while i < count - 1:
+            result += self.distance(bend[i], bend[i + 1])
+            i = i+1
+
+        return result
+
+
+    def base_line_length(self, bend):
+        """
+        Returns the length of the baseline
+
+        :param bend: point representation of a bend
+        """
+
+        count = len(bend)
+
+        if count < 3:
+            return 0
+
+        return sqrt((bend[count - 1][0] - bend[0][0]) ** 2 +
+                (bend[count - 1][1] - bend[0][1]) ** 2)
+
+
+    def peak_index(self, bend):
+        """
+        Finds the peak of a bend
+
+        :param bend: point representation of a bend
+        """
+
+        count = len(bend)
+
+        if count < 3:
+            return 0
+
+        begin = bend[0]
+        end = bend[count - 1]
+        peak_index = 0
+        max_sum = 0
+        i = 0
+
+        while i < count - 1:
+            temp_sum = (sqrt(pow((bend[i][0] - begin[0]), 2) +
+                            pow((bend[i][1] - begin[1]), 2)) +
+                        sqrt(pow((bend[i][0] - end[0]), 2) +
+                            pow((bend[i][1] - end[1]), 2)))
+            i = i + 1
+
+            if not temp_sum > max_sum:
+                continue
+
+            max_sum = temp_sum
+            peak_index = i - 1
+
+        return peak_index
+
+
+    def cos_angle(self, u, v, w):
+        """
+        Returns the cosine of the angle between the vectors [u, v] and [v, w]
+
+        :param u: first point
+        :param v: second point
+        :param w: third point
+        """
+
+        cos = ((v[0] - u[0]) * (w[0] - v[0]) + (v[1] - u[1]) * (w[1] - v[1]))
+        cos = cos / sqrt((pow(v[0] - u[0], 2) + pow(v[1] - u[1], 2)) *
+                        (pow(w[0] - v[0], 2) + pow(w[1] - v[1], 2)))
+
+        return cos
+
+
+    def height(self, bend):
+        """
+        Returns the height of the bend
+
+        :param bend: point representation of a bend
+        """
+
+        count = len(bend)
+
+        if count < 3:
+            return 0
+
+        a = bend[count - 1][1] - bend[0][1]
+        b = bend[0][0] - bend[count - 1][0]
+        epsilon = 0.001
+
+        if fabs(a) < epsilon and fabs(b) < epsilon:
+            if count ==3:
+                return 0
+
+            a = bend[count - 2][1] - bend[0][1]
+            b = bend[0][0] - bend[count - 2][0]
+
+        c = bend[0][1] * (-1) * b - bend[0][0] * a
+        peakIndex = self.peak_index(bend)
+
+        return fabs(a * bend[peakIndex][0] +
+                    b * bend[peakIndex][1] + c) / sqrt(a * a + b * b)
+
+
+    def get(self, line):
+        """
+        Main method
+        Returns the number of points, the number of bends,
+        the average area of bends, the average length of baselines,
+        the average height of bends, the average length of the bends
+
+        :param line: a feature with a type equal to QgsWkbTypes.LineGeometry
+        """
+
+        points_number = len(line)
+        epsilon = 0.001
+
+        if points_number == 3 and fabs(line[0][0] - line[2][0]) < epsilon:
+            return (points_number, 0, 0.0, 0.0, 0.0, 0.0)
+
+        bend_number = 0
+        ave_bend_length = 0.0
+        ave_bend_base_line_length = 0.0
+        ave_bend_height = 0.0
+        ave_bend_area = 0.0
+        i = 0
+
+        while i < points_number - 2:
+            bend =[]
+            bend_orient = self.orientation(line[i], line[i + 1], line[i + 2])
+            bend.append(line[i])
+            bend.append(line[i + 1])
+            bend.append(line[i + 2])
+            index = i + 3
+
+            while index < points_number:
+                count = len(bend)
+                p1 = line[index]
+                orient = self.orientation(bend[count - 2],bend[count - 1], p1)
+
+                if orient != bend_orient:
+                    break
+
+                bend.append(p1)
+                index += 1
+
+            index -= 1
+
+            while index < points_number - 1 :
+                if (self.cos_angle(line[index - 1], line[index], line[index + 1]) > 0.9 and
+                        pow(self.base_line_length(bend), 2) < pow(line[i][0] - line[index + 1][0], 2) +
+                            pow(line[i][1] - line[index + 1][1], 2)):
+                    index += 1
+                    bend.append(line[index])
+                else:
+                    break
+
+            index -= 1
+            i = index
+            bend_number += 1
+            ave_bend_length += self.bend_length(bend)
+            ave_bend_base_line_length += self.base_line_length(bend)
+            ave_bend_height += self.height(bend)
+            ave_bend_area += self.bend_area(bend)
+            bend.clear()
+
+        if bend_number > 0 :
+            return (
+                points_number,
+                bend_number,
+                round(ave_bend_area),
+                round(ave_bend_base_line_length),
+                round(ave_bend_height),
+                round(ave_bend_length)
+                )
+
+        return (points_number, 0, 0.0, 0.0, 0.0, 0.0)
+
+
+    def write_to_file(self, path, header, rows, delimiter):
+        """
+        This method writes the result to a file
+
+        :param path: Path to file
+        :param header: Header of the csv file
+        :param row: Csv rows
+        :param delimiter: Csv delimiter
+        """
+
+        if not path:
+            self.raise_exception('output path is empty')
+        if not header:
+            self.raise_exception('header is empty')
+        if not rows:
+            self.raise_exception('rows is empty')
+        if not delimiter:
+            self.raise_exception('delimiter is empty')
+
+        file_exists = os.path.isfile(path)
+
+        try:
+            output_file = open(path, 'a')
+            cout = csv.DictWriter(output_file, header, delimiter = delimiter)
+
+            if not file_exists:
+                cout.writeheader()
+
+            cout.writerows(rows)
+            output_file.close()
+        except Exception:
+            self.raise_exception('error while writing to file')
+
+
+    def raise_exception(self, message):
+        raise QgsProcessingException(self.tr(message))
+
 
     def name(self):
         """
@@ -198,8 +570,30 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         """
         return 'Map characteristics'
 
+
+    def shortHelpString(self):
+        return self._shortHelp
+
+
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)
 
     def createInstance(self):
         return LayerCharacteristicsAlgorithm()
+
+    def define_help_info(self, help_file):
+        """
+        Sets the help text.
+
+        :help_file: File name
+        """
+
+        directory = os.path.dirname(__file__)
+        file_name = os.path.join(directory, help_file)
+
+        try:
+            with open(file_name, 'r') as f:
+                text = f.read()
+                self._shortHelp += text
+        except Exception:
+            pass

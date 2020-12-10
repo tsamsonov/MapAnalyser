@@ -1,0 +1,8 @@
+
+for linear layers:
+--the number of bends in the line and the average bend characteristics: height, length, area and baseline length
+for polygon layers:
+--the total area, total perimeter, average polygon area in the layer and average polygon perimeter in the layer
+
+Input: Vector layer
+Output: .CSV file, processing log

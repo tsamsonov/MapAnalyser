@@ -141,7 +141,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
             self.raise_exception('layer geometry is not line geometry')
 
         feedback.pushInfo(self.tr('Receiving endpoints of the lines'))
-        
+
         end_points = {}
 
         for feature in layer.getFeatures():
