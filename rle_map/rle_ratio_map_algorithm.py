@@ -50,7 +50,8 @@ from qgis.PyQt.QtGui import QColor
 
 
 # more imports
-from mapanalyser.rle.rle_compression_ratio import (get_ratio_with_abs_comparator, get_ratio_with_simple_comparator)
+from mapanalyser.rle.rle_compression_ratio import get_ratio_with_abs_comparator, get_ratio_with_simple_comparator
+from ..utils import tr, define_help_info, raise_exception, write_to_file
 
 
 class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
@@ -68,12 +69,13 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
     CANVAS_NAME = 'CANVAS_NAME'
     WIDTH = 'WIDTH'
     HEIGHT = 'HEIGHT'
+    HELP_FILE = 'rle_map_help.txt'
 
     def __init__(self):
         super().__init__()
-        self._shortHelp = 'This algorithm calculates the RLE ratio of map.'
-
-        self.define_help_info('rle_map_help.txt')
+        directory = os.path.dirname(__file__)
+        file_name = os.path.join(directory, self.HELP_FILE)
+        self._shortHelp = define_help_info(file_name)
 
 
     def initAlgorithm(self, config):
@@ -91,30 +93,30 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 self.CANVAS_NAME,
-                self.tr('Canvas name')))
+                tr('Canvas name')))
 
         self.addParameter(
             QgsProcessingParameterExtent(
                 self.EXTENT,
-                self.tr('Minimum extent to render'),
+                tr('Minimum extent to render'),
                 defaultValue=str(default_extent_value)))
 
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.WIDTH,
-                self.tr('Output image width'),
+                tr('Output image width'),
                 defaultValue=800))
 
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.HEIGHT,
-                self.tr('Output image height'),
+                tr('Output image height'),
                 defaultValue=600))
 
         self.addParameter(
             QgsProcessingParameterFileDestination(
                 self.OUTPUT,
-                self.tr('Output file'),
+                tr('Output file'),
                 'csv(*.csv)',
             )
         )
@@ -128,7 +130,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         extent = self.parameterAsExtent(parameters, self.EXTENT, context)
 
         if not extent:
-            self.raise_exception('can\'t read extent')
+            raise_exception('can\'t read extent')
 
         feedback.setProgress(10)
         output_file = self.parameterAsFileOutput(
@@ -142,7 +144,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
 
         if not canvas_name:
             if not output_file:
-                self.raise_exception('empty output and canvas name')
+                raise_exception('empty output and canvas name')
 
             canvas_name = os.path.basename(output_file)
 
@@ -173,7 +175,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
 
         if output_file:
             header = ['canvas', 'compress ratio']
-            self.write_to_file(output_file, header, row, ';')
+            write_to_file(output_file, header, row, ';')
 
         return {'RLE compression ratio': ratio}
 
@@ -186,7 +188,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         '''
 
         if not image_path:
-            self.raise_exception('image_path is empty')
+            raise_exception('image_path is empty')
 
         ratio = get_ratio_with_simple_comparator(image_path)
 
@@ -205,19 +207,19 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         '''
 
         if not extent:
-            self.raise_exception('extent is empty')
+            raise_exception('extent is empty')
 
         if not width:
-            self.raise_exception('width is empty')
+            raise_exception('width is empty')
 
         if not height:
-            self.raise_exception('height is empty')
+            raise_exception('height is empty')
 
         if not canvas_name:
-            self.raise_exception('canvas name is empty')
+            raise_exception('canvas name is empty')
 
         if not output_dir:
-            self.raise_exception('output_dir is empty')
+            raise_exception('output_dir is empty')
 
         file_name = '{0}/{1}.png'.format(output_dir, canvas_name)
         settings = QgsMapSettings()
@@ -232,37 +234,6 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         image.save(file_name, "png")
 
         return file_name
-
-    def write_to_file(self, path, header, rows, delimiter):
-        '''
-        This method writes the result to a file
-
-        :param path: Path to file
-        :param header: Header of the csv file
-        :param row: Csv rows
-        :param delimiter: Csv delimiter
-        '''
-
-        if not path:
-            self.raise_exception('output path is empty')
-
-        file_exists = os.path.isfile(path)
-
-        try:
-            output_file = open(path, 'a')
-            cout = csv.DictWriter(output_file, header, delimiter = delimiter)
-
-            if not file_exists:
-                cout.writeheader()
-
-            cout.writerows(rows)
-            output_file.close()
-        except Exception:
-            self.raise_exception('error while writing to file')
-
-
-    def raise_exception(self, message):
-        raise QgsProcessingException(self.tr(message))
 
 
     def name(self):
@@ -282,7 +253,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr(self.name())
+        return tr(self.name())
 
 
     def group(self):
@@ -290,7 +261,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         Returns the name of the group this algorithm belongs to. This string
         should be localised.
         """
-        return self.tr(self.groupId())
+        return tr(self.groupId())
 
 
     def groupId(self):
@@ -308,27 +279,5 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         return self._shortHelp
 
 
-    def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
-
-
     def createInstance(self):
         return RLERatioOfMapAlgorithm()
-
-
-    def define_help_info(self, help_file):
-        """
-        Sets the help text.
-
-        :help_file: File name
-        """
-
-        directory = os.path.dirname(__file__)
-        file_name = os.path.join(directory, help_file)
-
-        try:
-            with open(file_name, 'r') as f:
-                text = f.read()
-                self._shortHelp += text
-        except Exception:
-            pass

@@ -27,7 +27,7 @@ __date__ = '2020-07-10'
 __copyright__ = '(C) 2020 by YSU'
 
 import os
-from .check_imports import check
+from .utils import check
 
 
 # noinspection PyPep8Naming
@@ -37,11 +37,12 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    #
+    REQ_PATH = 'requirements.txt'
+    README_PATH = 'readme_imports.txt'
     # check packages
     directory = os.path.dirname(__file__)
-    filename = os.path.join(directory, 'requirements.txt')
-    check(filename)
+    filename = os.path.join(directory, REQ_PATH)
+    check(filename, README_PATH)
 
     from .map_analyser import MapAnalyserPlugin
     return MapAnalyserPlugin()

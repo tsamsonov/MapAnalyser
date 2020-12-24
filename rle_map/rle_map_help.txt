@@ -1,4 +1,4 @@
-
+This algorithm calculates the RLE ratio of map.
 The compression ratio shows the ratio of the size of the compressed image of map to the original one.
 If the ratio is close to 1, the map is not compressed well, so the map can be considered complex.
 

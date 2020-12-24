@@ -1,4 +1,4 @@
-
+This is an algorithm that calculates the total number of intersections of linear layers.
 The steps of the algorithm:
 1. Merge layers
 2. Find end points of lines

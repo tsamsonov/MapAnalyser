@@ -41,7 +41,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingException)
 
 # more imports
-from ..rle.rle_compression_ratio import (get_ratio_with_abs_comparator, get_ratio_with_simple_comparator)
+from ..rle.rle_compression_ratio import get_ratio_with_abs_comparator, get_ratio_with_simple_comparator
+from ..utils import tr, raise_exception, define_help_info, write_to_file
 
 
 class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
@@ -55,12 +56,13 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
 
     OUTPUT = 'OUTPUT'
     INPUT = 'INPUT'
+    HELP_FILE = 'rle_image_help.txt'
 
     def __init__(self):
         super().__init__()
-        self._shortHelp = 'This algorithm calculates the RLE ratio of image.'
-
-        self.define_help_info('rle_image_help.txt')
+        directory = os.path.dirname(__file__)
+        file_name = os.path.join(directory, self.HELP_FILE)
+        self._shortHelp = define_help_info(file_name)
 
     def initAlgorithm(self, config):
         """
@@ -71,7 +73,7 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFile(
                 name=self.INPUT,
-                description=self.tr('Input file'),
+                description=tr('Input file'),
                 extension='png',
             )
         )
@@ -79,7 +81,7 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFileDestination(
                 self.OUTPUT,
-                self.tr('Output file'),
+                tr('Output file'),
                 'csv(*.csv)',
             )
         )
@@ -93,14 +95,14 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
         image = self.parameterAsFile(parameters, self.INPUT, context)
 
         if not image:
-            self.raise_exception('can\'t get an image path')
+            raise_exception('can\'t get an image path')
 
         feedback.setProgress(20)
 
         if feedback.isCanceled():
             return -1
 
-        feedback.pushInfo(self.tr('The RLE algorithm is running'))
+        feedback.pushInfo(tr('The RLE algorithm is running'))
         ratio = self.compress_from_path(image)
         feedback.setProgress(80)
 
@@ -110,13 +112,13 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
         output = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
 
         if output:
-            feedback.pushInfo(self.tr('Writing to file'))
+            feedback.pushInfo(tr('Writing to file'))
             file_name = os.path.basename(image)
             file_name = os.path.splitext(file_name)[0]
             row = [{'image': file_name,
                    'compress ratio': ratio}]
             header = ['image', 'compress ratio']
-            self.write_to_file(output, header, row, ';')
+            write_to_file(output, header, row, ';')
 
         return {'RLE compression ratio': ratio}
 
@@ -129,47 +131,9 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
         '''
 
         if not path:
-            self.raise_exception('image path is empty')
+            raise_exception('image path is empty')
 
         return get_ratio_with_abs_comparator(path)
-
-
-    def write_to_file(self, path, header, rows, delimiter):
-        '''
-        This method writes the result to a file
-
-        :param path: Path to file
-        :param header: Header of the csv file
-        :param row: Csv rows
-        :param delimiter: Csv delimiter
-        '''
-
-        if not path:
-            self.raise_exception('output path is empty')
-        if not header:
-            self.raise_exception('header is empty')
-        if not rows:
-            self.raise_exception('rows is empty')
-        if not delimiter:
-            self.raise_exception('delimiter is empty')
-
-        file_exists = os.path.isfile(path)
-
-        try:
-            output_file = open(path, 'a')
-            cout = csv.DictWriter(output_file, header, delimiter = delimiter)
-
-            if not file_exists:
-                cout.writeheader()
-
-            cout.writerows(rows)
-            output_file.close()
-        except Exception:
-            self.raise_exception('error while writing to file')
-
-
-    def raise_exception(self, message):
-        raise QgsProcessingException(self.tr(message))
 
 
     def name(self):
@@ -196,7 +160,7 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
         Returns the name of the group this algorithm belongs to. This string
         should be localised.
         """
-        return self.tr(self.groupId())
+        return tr(self.groupId())
 
 
     def groupId(self):
@@ -214,27 +178,5 @@ class RLERatioOfImageAlgorithm(QgsProcessingAlgorithm):
         return self._shortHelp
 
 
-    def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
-
-
     def createInstance(self):
         return RLERatioOfImageAlgorithm()
-
-
-    def define_help_info(self, help_file):
-        """
-        Sets the help text.
-
-        :help_file: File name
-        """
-
-        directory = os.path.dirname(__file__)
-        file_name = os.path.join(directory, help_file)
-
-        try:
-            with open(file_name, 'r') as f:
-                text = f.read()
-                self._shortHelp += text
-        except Exception:
-            pass

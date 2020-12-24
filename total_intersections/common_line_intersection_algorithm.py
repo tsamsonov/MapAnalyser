@@ -46,6 +46,8 @@ from qgis.core import (QgsProcessing,
                        QgsPointXY,
                        QgsFields)
 
+from ..utils import tr, raise_exception, define_help_info
+
 
 class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
     """
@@ -59,13 +61,14 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
 
     OUTPUT = 'OUTPUT'
     INPUT = 'INPUT'
+    HELP_FILE = 'total_intersections_help.txt'
 
 
     def __init__(self):
         super().__init__()
-
-        self._shortHelp = "This is an algorithm that calculates the total number of intersections of linear layers"
-        self.define_help_info("total_intersections_help.txt")
+        directory = os.path.dirname(__file__)
+        file_name = os.path.join(directory, self.HELP_FILE)
+        self._shortHelp = define_help_info(file_name)
 
 
     def initAlgorithm(self, config):
@@ -77,7 +80,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterMultipleLayers(
                 self.INPUT,
-                self.tr('Input layers'),
+                tr('Input layers'),
                 QgsProcessing.TypeVectorLine
             )
         )
@@ -85,7 +88,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT,
-                self.tr('Output layer')
+                tr('Output layer')
             )
         )
 
@@ -134,13 +137,13 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         """
 
         if not layer:
-            self.raise_exception('layer is empty')
+            raise_exception('layer is empty')
         if not feedback:
-            self.raise_exception('feedback is empty')
+            raise_exception('feedback is empty')
         if layer.geometryType() != QgsWkbTypes.LineGeometry:
-            self.raise_exception('layer geometry is not line geometry')
+            raise_exception('layer geometry is not line geometry')
 
-        feedback.pushInfo(self.tr('Receiving endpoints of the lines'))
+        feedback.pushInfo(tr('Receiving endpoints of the lines'))
 
         end_points = {}
 
@@ -166,7 +169,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
                     end_points[end_v_cortege] = 1
 
         feedback.setProgress(30)
-        feedback.pushInfo(self.tr('Getting intersection points (this can take a long time (the more lines, the more time))'))
+        feedback.pushInfo(tr('Getting intersection points (this can take a long time (the more lines, the more time))'))
 
         intersections_proc_params = {
             'INPUT': layer,
@@ -183,7 +186,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
 
         set_of_intersections = set((f.geometry().asPoint().x(), f.geometry().asPoint().y()) for f in intersections_layer.getFeatures())
 
-        feedback.pushInfo(self.tr('Getting true intersection points'))
+        feedback.pushInfo(tr('Getting true intersection points'))
 
         intersections = self.get_true_intersections(set_of_intersections, end_points)
 
@@ -201,9 +204,9 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         """
 
         if not intersections:
-            self.raise_exception('intersections is empty')
+            raise_exception('intersections is empty')
         if not end_points:
-            self.raise_exception('end_points is empty')
+            raise_exception('end_points is empty')
 
         true_intersections = set()
 
@@ -225,17 +228,21 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         """
 
         if not layers:
-            self.raise_exception('layers is empty')
+            raise_exception('layers is empty')
         if not feedback:
-            self.raise_exception('feedback is empty')
+            raise_exception('feedback is empty')
 
-        feedback.pushInfo(self.tr('Merging layers'))
+        feedback.pushInfo(tr('Merging layers'))
         feedback.setProgress(10)
 
         layer_names = [
             layer.name() for layer in layers
             if layer.geometryType() == QgsWkbTypes.LineGeometry
             ]
+
+        if not layer_names:
+            raise_exception("failed to get linear layers for merge")
+
         merge_proc_params = {
             'LAYERS': layer_names,
             'OUTPUT': 'memory:'
@@ -246,10 +253,6 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         feedback.setProgress(20)
 
         return merged_layers_map
-
-
-    def raise_exception(self, message):
-        raise QgsProcessingException(self.tr(message))
 
 
     def name(self):
@@ -268,7 +271,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr(self.name())
+        return tr(self.name())
 
 
     def group(self):
@@ -276,7 +279,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         Returns the name of the group this algorithm belongs to. This string
         should be localised.
         """
-        return self.tr(self.groupId())
+        return tr(self.groupId())
 
 
     def groupId(self):
@@ -294,27 +297,5 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         return self._shortHelp
 
 
-    def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
-
-
     def createInstance(self):
         return CommonIntersectionAlgorithm()
-
-
-    def define_help_info(self, help_file):
-        """
-        Sets the help text.
-
-        :help_file: File name
-        """
-
-        directory = os.path.dirname(__file__)
-        file_name = os.path.join(directory, help_file)
-
-        try:
-            with open(file_name, 'r') as f:
-                text = f.read()
-                self._shortHelp += text
-        except Exception:
-            pass

@@ -30,7 +30,6 @@ __copyright__ = '(C) 2020 by YSU'
 
 __revision__ = '$Format:%H$'
 
-import csv
 import os
 
 from PyQt5.QtCore import QCoreApplication
@@ -41,6 +40,8 @@ from qgis.core import (QgsProcessing,
                        QgsProcessingParameterFile,
                        QgsProcessingParameterVectorLayer,
                        QgsWkbTypes)
+
+from ..utils import tr, raise_exception, write_to_file, define_help_info
 
 
 class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
@@ -55,11 +56,13 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
 
     OUTPUT = 'OUTPUT'
     INPUT = 'INPUT'
+    HELP_FILE = 'top_sem_help.txt'
 
     def __init__(self):
         super().__init__()
-        self._shortHelp = "This algorithm calculates the topological and semantic characteristics of a layer"
-        self.define_help_info("top_sem_help.txt")
+        directory = os.path.dirname(__file__)
+        file_name = os.path.join(directory, self.HELP_FILE)
+        self._shortHelp = define_help_info(file_name)
 
 
     def initAlgorithm(self, config):
@@ -71,14 +74,14 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterVectorLayer(
                 self.INPUT,
-                self.tr('Input layer')
+                tr('Input layer')
             )
         )
 
         self.addParameter(
             QgsProcessingParameterFileDestination(
                 self.OUTPUT,
-                self.tr('Output File'),
+                tr('Output File'),
                 'csv(*.csv)',
             )
         )
@@ -93,9 +96,9 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         output = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
 
         if not layer:
-            self.raise_exception('can\'t get a layer')
+            raise_exception('can\'t get a layer')
 
-        feedback.pushInfo(self.tr('The algorithm is running'))
+        feedback.pushInfo(tr('The algorithm is running'))
         header = [
             'layer',
             'features count',
@@ -111,8 +114,8 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             }]
 
         if output:
-            feedback.pushInfo(self.tr('Writing to file'))
-            self.write_to_file(output, header, row, ';')
+            feedback.pushInfo(tr('Writing to file'))
+            write_to_file(output, header, row, ';')
 
         return {'Result': row}
 
@@ -125,7 +128,7 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         """
 
         if not pair:
-            self.raise_exception("pair is empty")
+            raise_exception("pair is empty")
 
         first_ratio = '0' if pair[0] == 0.000 else "%.3f" % pair[0]
         second_ratio = '0' if pair[1] == 0.000 else "%.3f" % pair[1]
@@ -142,9 +145,9 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         """
 
         if not layer:
-            self.raise_exception('layer is empty')
+            raise_exception('layer is empty')
         if not feedback:
-            self.raise_exception('feedback is empty')
+            raise_exception('feedback is empty')
 
         data_provider = layer.dataProvider()
         features_count = data_provider.featureCount()
@@ -162,9 +165,9 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         """
 
         if not layer:
-            self.raise_exception('layer is empty')
+            raise_exception('layer is empty')
         if not feedback:
-            self.raise_exception('feedback is empty')
+            raise_exception('feedback is empty')
 
         geometry_type = layer.geometryType()
 
@@ -197,9 +200,9 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         """
 
         if not layer:
-            self.raise_exception('layer is empty')
+            raise_exception('layer is empty')
         if not feedback:
-            self.raise_exception('feedback is empty')
+            raise_exception('feedback is empty')
 
         data_provider = layer.dataProvider()
         feature_count = data_provider.featureCount()
@@ -225,44 +228,6 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         return (unique_values_ratio, unique_values_ratio_by_fields_count)
 
 
-    def write_to_file(self, path, header, rows, delimiter):
-        """
-        This method writes the result to a file
-
-        :param path: Path to file
-        :param header: Header of the csv file
-        :param row: Csv rows
-        :param delimiter: Csv delimiter
-        """
-
-        if not path:
-            self.raise_exception('output path is empty')
-        if not header:
-            self.raise_exception('header is empty')
-        if not rows:
-            self.raise_exception('rows is empty')
-        if not delimiter:
-            self.raise_exception('delimiter is empty')
-
-        file_exists = os.path.isfile(path)
-
-        try:
-            output_file = open(path, 'a')
-            cout = csv.DictWriter(output_file, header, delimiter = delimiter)
-
-            if not file_exists:
-                cout.writeheader()
-
-            cout.writerows(rows)
-            output_file.close()
-        except Exception:
-            self.raise_exception('error while writing to file')
-
-
-    def raise_exception(self, message):
-        raise QgsProcessingException(self.tr(message))
-
-
     def name(self):
         """
         Returns the algorithm name, used for identifying the algorithm. This
@@ -279,7 +244,7 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         Returns the translated algorithm name, which should be used for any
         user-visible display of the algorithm name.
         """
-        return self.tr(self.name())
+        return tr(self.name())
 
 
     def group(self):
@@ -287,7 +252,7 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         Returns the name of the group this algorithm belongs to. This string
         should be localised.
         """
-        return self.tr(self.groupId())
+        return tr(self.groupId())
 
 
     def groupId(self):
@@ -305,27 +270,5 @@ class TopologicalAndSemanticCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         return self._shortHelp
 
 
-    def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
-
-
     def createInstance(self):
         return TopologicalAndSemanticCharacteristicsAlgorithm()
-
-
-    def define_help_info(self, help_file):
-        """
-        Sets the help text.
-
-        :help_file: File name
-        """
-
-        directory = os.path.dirname(__file__)
-        file_name = os.path.join(directory, help_file)
-
-        try:
-            with open(file_name, 'r') as f:
-                text = f.read()
-                self._shortHelp += text
-        except Exception:
-            pass
