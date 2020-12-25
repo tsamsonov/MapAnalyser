@@ -46,7 +46,7 @@ from qgis.core import (QgsFeatureRequest,
                        QgsWkbTypes)
 from qgis.utils import iface
 
-from .utils import get
+from .utils import get, get_formatted_ratios_result, update_unique_values, get_unique_values_ratios
 from ..utils import tr, raise_exception, write_to_file, define_help_info
 
 
@@ -157,7 +157,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             if feedback.isCanceled():
                 break
 
-            self.update_unique_values(feature, indexes, unique_values_per_field)
+            update_unique_values(feature, indexes, unique_values_per_field)
             geom = feature.geometry()
             is_single_type = QgsWkbTypes.isSingleType(geom.wkbType())
 
@@ -255,8 +255,8 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             header[0]: layer.name(),
             header[1]: features_count,
             header[2]: (
-                self.get_formatted_ratios_result(
-                    self.get_unique_values_ratios(
+                get_formatted_ratios_result(
+                    get_unique_values_ratios(
                         unique_values_per_field, features_count,
                         len(fields)
                     )
@@ -280,68 +280,6 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             write_to_file(output, header, row, ';')
 
         return row[0]
-
-
-    def get_formatted_ratios_result(self, pair):
-        """
-        This method builds a formatted string of a pair of ratios
-
-        :param pair: Pair of ratios
-        """
-
-        if not pair:
-            raise_exception("pair is empty")
-
-        first_ratio = '0' if pair[0] == 0.000 else "%.3f" % pair[0]
-        second_ratio = '0' if pair[1] == 0.000 else "%.3f" % pair[1]
-
-        return f"{first_ratio}, {second_ratio}"
-
-
-    def update_unique_values(self, feature, indexes, unique_values_per_field):
-        """
-        This method updates unique values for feature per fields
-
-        :param feature: the feature of the layer
-        :param indexes: field indexes
-        :param unique_values_per_field: dictionary of sets with unique values
-        """
-
-        if not feature:
-            raise_exception('feature is empty')
-
-        if not indexes:
-            raise_exception('indexes is empty')
-
-        if not unique_values_per_field:
-            raise_exception('unique_values_per_field is empty')
-
-        attributes = feature.attributes()
-
-        for index in indexes:
-            unique_values_per_field[index].add(attributes[index])
-
-
-    def get_unique_values_ratios(self, unique_values_per_field, feature_count, fields_count):
-        """
-        This method calculates the ratio of unique values
-
-        :param unique_values_per_field: dictionary of sets with unique values
-        :param feature_count: the number of features in the layer
-        :param fields: the number of fields in the layer data provider
-        """
-
-        unique_values_ratio = 0.0
-        unique_values_ratio_by_fields_count = 0.0
-
-        if feature_count:
-            for value in unique_values_per_field.values():
-                unique_values_ratio += len(value)
-
-            unique_values_ratio = round(unique_values_ratio / feature_count, 3)
-            unique_values_ratio_by_fields_count = round(unique_values_ratio / fields_count, 3)
-
-        return (unique_values_ratio, unique_values_ratio_by_fields_count)
 
 
     def name(self):

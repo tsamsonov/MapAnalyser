@@ -2,6 +2,7 @@
     Helper methods for the algorithm characteristics of the layer
 """
 from math import sqrt, fabs
+from ..utils import raise_exception
 
 
 def distance(pointA, pointB):
@@ -269,3 +270,65 @@ def get(line):
             )
 
     return (points_number, 0, 0.0, 0.0, 0.0, 0.0)
+
+
+def get_formatted_ratios_result(pair):
+    """
+    This method builds a formatted string of a pair of ratios
+
+    :param pair: Pair of ratios
+    """
+
+    if not pair:
+        raise_exception("pair is empty")
+
+    first_ratio = '0' if pair[0] == 0.000 else "%.3f" % pair[0]
+    second_ratio = '0' if pair[1] == 0.000 else "%.3f" % pair[1]
+
+    return f"{first_ratio}, {second_ratio}"
+
+
+def update_unique_values(feature, indexes, unique_values_per_field):
+    """
+    This method updates unique values for feature per fields
+
+    :param feature: the feature of the layer
+    :param indexes: field indexes
+    :param unique_values_per_field: dictionary of sets with unique values
+    """
+
+    if not feature:
+        raise_exception('feature is empty')
+
+    if not indexes:
+        raise_exception('indexes is empty')
+
+    if not unique_values_per_field:
+        raise_exception('unique_values_per_field is empty')
+
+    attributes = feature.attributes()
+
+    for index in indexes:
+        unique_values_per_field[index].add(attributes[index])
+
+
+def get_unique_values_ratios(unique_values_per_field, feature_count, fields_count):
+    """
+    This method calculates the ratio of unique values
+
+    :param unique_values_per_field: dictionary of sets with unique values
+    :param feature_count: the number of features in the layer
+    :param fields: the number of fields in the layer data provider
+    """
+
+    unique_values_ratio = 0.0
+    unique_values_ratio_by_fields_count = 0.0
+
+    if feature_count:
+        for value in unique_values_per_field.values():
+            unique_values_ratio += len(value)
+
+        unique_values_ratio = round(unique_values_ratio / feature_count, 3)
+        unique_values_ratio_by_fields_count = round(unique_values_ratio / fields_count, 3)
+
+    return (unique_values_ratio, unique_values_ratio_by_fields_count)
