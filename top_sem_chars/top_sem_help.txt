@@ -1,5 +1,0 @@
-This algorithm calculates the topological and semantic characteristics of a layer.
-Topological and semantic characteristics are features count, ratios of unique values, common length (and the common number of intersections, but you must use a different module to calculate this characteristic, because it takes a long time to calculate it).
-
-Input: Vector layer
-Output: .CSV file, processing log

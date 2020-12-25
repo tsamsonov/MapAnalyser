@@ -1,8 +1,9 @@
-
+This algorithm calculates the topological and semantic characteristics of a layer and
 for linear layers:
 --the number of bends in the line and the average bend characteristics: height, length, area and baseline length
 for polygon layers:
 --the total area, total perimeter, average polygon area in the layer and average polygon perimeter in the layer
+Topological and semantic characteristics are features count, ratios of unique values, common length (and the common number of intersections, but you must use a different module to calculate this characteristic, because it takes a long time to calculate it).
 
 Input: Vector layer
 Output: .CSV file, processing log
