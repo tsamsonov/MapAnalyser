@@ -2,6 +2,7 @@
     Helper methods for the algorithm characteristics of the layer
 """
 from math import sqrt, fabs
+from numbers import Number
 from ..utils import raise_exception
 
 
@@ -286,6 +287,19 @@ def get_formatted_ratios_result(pair):
     second_ratio = '0' if pair[1] == 0.000 else "%.3f" % pair[1]
 
     return f"{first_ratio}, {second_ratio}"
+
+
+def get_formatted_result(number):
+    """
+    Rounds to three decimal places
+
+    :param number: number
+    """
+
+    if not isinstance(number, Number):
+        raise_exception('number is not Number')
+
+    return round(number, 3)
 
 
 def update_unique_values(feature, indexes, unique_values_per_field):

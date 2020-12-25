@@ -46,7 +46,7 @@ from qgis.core import (QgsFeatureRequest,
                        QgsWkbTypes)
 from qgis.utils import iface
 
-from .utils import get, get_formatted_ratios_result, update_unique_values, get_unique_values_ratios
+from .utils import get, get_formatted_ratios_result, update_unique_values, get_unique_values_ratios, get_formatted_result
 from ..utils import tr, raise_exception, write_to_file, define_help_info
 
 
@@ -262,17 +262,17 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
                     )
                 )
             ),
-            header[3]: common_length,
+            header[3]: get_formatted_result(common_length),
             header[4]: points_num,
             header[5]: bend_num,
-            header[6]: ave_bend_area / bend_num if bend_num > 0 else 0.0,
-            header[7]: ave_bend_base_line_len / bend_num if bend_num > 0 else 0.0,
-            header[8]: ave_bend_height / bend_num if bend_num > 0 else 0.0,
-            header[9]: ave_bend_length / bend_num if bend_num > 0 else 0.0,
-            header[10]: total_polygon_area,
-            header[11]: total_polygon_perimetr,
-            header[12]: total_polygon_area / count if count > 0 else 0.0,
-            header[13]: total_polygon_perimetr / count if count > 0 else 0.0,
+            header[6]: get_formatted_result(ave_bend_area / bend_num) if bend_num > 0 else 0.0,
+            header[7]: get_formatted_result(ave_bend_base_line_len / bend_num) if bend_num > 0 else 0.0,
+            header[8]: get_formatted_result(ave_bend_height / bend_num) if bend_num > 0 else 0.0,
+            header[9]: get_formatted_result(ave_bend_length / bend_num) if bend_num > 0 else 0.0,
+            header[10]: get_formatted_result(total_polygon_area),
+            header[11]: get_formatted_result(total_polygon_perimetr),
+            header[12]: get_formatted_result(total_polygon_area / count) if count > 0 else 0.0,
+            header[13]: get_formatted_result(total_polygon_perimetr / count) if count > 0 else 0.0,
         }]
 
         if output:
