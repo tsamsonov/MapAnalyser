@@ -32,7 +32,6 @@ __revision__ = '$Format:%H$'
 
 import os
 import csv
-import qgis
 
 from PyQt5.QtCore import QCoreApplication
 from qgis.core import (QgsProcessingAlgorithm,
@@ -47,7 +46,7 @@ from qgis.core import (QgsProcessingAlgorithm,
                        QgsMapRendererParallelJob)
 from qgis.PyQt.QtCore import QSize
 from qgis.PyQt.QtGui import QColor
-
+from qgis.utils import iface
 
 # more imports
 from mapanalyser.rle.rle_compression_ratio import get_ratio_with_abs_comparator, get_ratio_with_simple_comparator
@@ -83,12 +82,14 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
         Here we define the inputs and output of the algorithm, along
         with some other properties.
         """
-        
-        default_extent = qgis.utils.iface.mapCanvas().extent()
-        default_extent_value = '{0},{1},{2},{3}'.format(default_extent.xMinimum(),
-                                                        default_extent.xMaximum(),
-                                                        default_extent.yMinimum(),
-                                                        default_extent.yMaximum())
+
+        default_extent = iface.mapCanvas().extent()
+        default_extent_value = '{0},{1},{2},{3}'.format(
+            default_extent.xMinimum(),
+            default_extent.xMaximum(),
+            default_extent.yMinimum(),
+            default_extent.yMaximum()
+        )
 
         self.addParameter(
             QgsProcessingParameterString(
@@ -223,7 +224,7 @@ class RLERatioOfMapAlgorithm(QgsProcessingAlgorithm):
 
         file_name = '{0}/{1}.png'.format(output_dir, canvas_name)
         settings = QgsMapSettings()
-        settings.setLayers(qgis.utils.iface.mapCanvas().layers())
+        settings.setLayers(iface.mapCanvas().layers())
         settings.setBackgroundColor(QColor(255, 255, 255))
         settings.setOutputSize(QSize(width, height))
         settings.setExtent(extent)

@@ -32,14 +32,19 @@ __revision__ = '$Format:%H$'
 
 import os
 
+from random import randrange
+
 from PyQt5.QtCore import QCoreApplication
-from qgis.core import (QgsProcessing,
+from qgis.core import (QgsFeatureRequest,
+                       QgsProcessing,
                        QgsProcessingAlgorithm,
                        QgsProcessingException,
+                       QgsProcessingParameterExtent,
                        QgsProcessingParameterFileDestination,
                        QgsProcessingParameterFile,
                        QgsProcessingParameterVectorLayer,
                        QgsWkbTypes)
+from qgis.utils import iface
 
 from .utils import get
 from ..utils import tr, raise_exception, write_to_file, define_help_info
@@ -63,6 +68,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
 
     OUTPUT = 'OUTPUT'
     INPUT = 'INPUT'
+    EXTENT = 'EXTENT'
     HELP_FILE = 'layer_characteristics_help.txt'
 
     def __init__(self):
@@ -79,12 +85,25 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         with some other properties.
         """
 
+        default_extent = iface.mapCanvas().extent()
+        default_extent_value = '{0},{1},{2},{3}'.format(
+            default_extent.xMinimum(),
+            default_extent.xMaximum(),
+            default_extent.yMinimum(),
+            default_extent.yMaximum())
+
         self.addParameter(
             QgsProcessingParameterVectorLayer(
                 self.INPUT,
                 tr('Input layer')
             )
         )
+
+        self.addParameter(
+            QgsProcessingParameterExtent(
+                self.EXTENT,
+                tr('Minimum extent to render'),
+                defaultValue=str(default_extent_value)))
 
         self.addParameter(
             QgsProcessingParameterFileDestination(
@@ -100,15 +119,27 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
         self.progress = 0
+        extent = self.parameterAsExtent(parameters, self.EXTENT, context)
         layer = self.parameterAsVectorLayer(parameters, self.INPUT, context)
         output = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
+
+        if not extent:
+            raise_exception('can\'t read extent')
 
         if not layer:
             raise_exception('can\'t get a layer')
 
-        feedback.pushInfo(tr('The algorithm is running'))
-        total = 80.0 / layer.featureCount() if layer.featureCount() else 0
+        if not output:
+            raise_exception('can\'t get an output')
 
+        feedback.pushInfo(tr('The algorithm is running'))
+        request = QgsFeatureRequest().setFilterRect(extent)
+        features = list(layer.getFeatures(request))
+        features_count = len(features)
+        fields = layer.dataProvider().fields()
+        indexes = [fields.indexFromName(field.name()) for field in fields]
+
+        unique_values_per_field = {key: set() for key in indexes}
         points_num = 0
         common_length = 0
         bend_num = 0
@@ -120,10 +151,13 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         total_polygon_perimetr = 0.0
         count = 0.0
 
-        for current, feature in enumerate(layer.getFeatures()):
+        total = 100.0 / features_count if features_count > 0 else 0
+
+        for current, feature in enumerate(features):
             if feedback.isCanceled():
                 break
 
+            self.update_unique_values(feature, indexes, unique_values_per_field)
             geom = feature.geometry()
             is_single_type = QgsWkbTypes.isSingleType(geom.wkbType())
 
@@ -219,9 +253,15 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         ]
         row = [{
             header[0]: layer.name(),
-            header[1]: self.get_features_count(layer, feedback),
-            header[2]: (self.get_formatted_ratios_result(
-                self.get_unique_values_ratios(layer, feedback))),
+            header[1]: features_count,
+            header[2]: (
+                self.get_formatted_ratios_result(
+                    self.get_unique_values_ratios(
+                        unique_values_per_field, features_count,
+                        len(fields)
+                    )
+                )
+            ),
             header[3]: common_length,
             header[4]: points_num,
             header[5]: bend_num,
@@ -258,63 +298,48 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         return f"{first_ratio}, {second_ratio}"
 
 
-    def get_features_count(self, layer, feedback):
+    def update_unique_values(self, feature, indexes, unique_values_per_field):
         """
-        This method calculates the number of layer objects
+        This method updates unique values for feature per fields
 
-        :param layer: Vector layer
-        :param feedback: Feedback from a processing algorithm
+        :param feature: the feature of the layer
+        :param indexes: field indexes
+        :param unique_values_per_field: dictionary of sets with unique values
         """
 
-        if not layer:
-            raise_exception('layer is empty')
-        if not feedback:
-            raise_exception('feedback is empty')
+        if not feature:
+            raise_exception('feature is empty')
 
-        data_provider = layer.dataProvider()
-        features_count = data_provider.featureCount()
+        if not indexes:
+            raise_exception('indexes is empty')
 
-        self.progress += 5
-        feedback.setProgress(self.progress)
+        if not unique_values_per_field:
+            raise_exception('unique_values_per_field is empty')
 
-        return features_count
+        attributes = feature.attributes()
+
+        for index in indexes:
+            unique_values_per_field[index].add(attributes[index])
 
 
-    def get_unique_values_ratios(self, layer, feedback):
+    def get_unique_values_ratios(self, unique_values_per_field, feature_count, fields_count):
         """
         This method calculates the ratio of unique values
-        using data provider fields
 
-        :param layer: Vector layer
-        :param feedback: Feedback from a processing algorithm
+        :param unique_values_per_field: dictionary of sets with unique values
+        :param feature_count: the number of features in the layer
+        :param fields: the number of fields in the layer data provider
         """
 
-        if not layer:
-            raise_exception('layer is empty')
-        if not feedback:
-            raise_exception('feedback is empty')
+        unique_values_ratio = 0.0
+        unique_values_ratio_by_fields_count = 0.0
 
-        data_provider = layer.dataProvider()
-        feature_count = data_provider.featureCount()
-        fields = data_provider.fields()
-        fields_count = len(fields)
+        if feature_count:
+            for value in unique_values_per_field.values():
+                unique_values_ratio += len(value)
 
-        if feature_count == 0 or fields_count == 0:
-            return (0, 0)
-
-        unique_values_count = 0
-        total = 15 / fields_count
-        for i in range(fields_count):
-            if feedback.isCanceled():
-                return (-1, -1)
-
-            unique_values_count += len(data_provider.uniqueValues(i, feature_count))
-
-            self.progress += total
-            feedback.setProgress(self.progress)
-
-        unique_values_ratio = round(unique_values_count / feature_count, 3)
-        unique_values_ratio_by_fields_count = round(unique_values_ratio / fields_count, 3)
+            unique_values_ratio = round(unique_values_ratio / feature_count, 3)
+            unique_values_ratio_by_fields_count = round(unique_values_ratio / fields_count, 3)
 
         return (unique_values_ratio, unique_values_ratio_by_fields_count)
 
