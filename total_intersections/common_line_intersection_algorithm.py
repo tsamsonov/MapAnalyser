@@ -188,7 +188,7 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
 
         feedback.pushInfo(tr('Getting true intersection points'))
 
-        intersections = self.get_true_intersections(set_of_intersections, end_points)
+        intersections = self.get_true_intersections(set_of_intersections, end_points) if set_of_intersections else []
 
         feedback.setProgress(90)
 
