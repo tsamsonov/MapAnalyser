@@ -38,7 +38,8 @@ from qgis.core import (QgsProcessing,
                        QgsFeatureSink,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterFeatureSink,
-                       QgsProcessingParameterMultipleLayers,
+                       QgsProcessingParameterVectorLayer,
+                       QgsProcessingParameterFileDestination,
                        QgsWkbTypes,
                        QgsProcessingException,
                        QgsGeometry,
@@ -46,7 +47,7 @@ from qgis.core import (QgsProcessing,
                        QgsPointXY,
                        QgsFields)
 
-from ..utils import tr, raise_exception, define_help_info
+from ..utils import tr, raise_exception, define_help_info, write_to_file
 
 
 class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
@@ -78,17 +79,17 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         """
 
         self.addParameter(
-            QgsProcessingParameterMultipleLayers(
+            QgsProcessingParameterVectorLayer(
                 self.INPUT,
-                tr('Input layers'),
-                QgsProcessing.TypeVectorLine
+                tr('Input layer')
             )
         )
 
         self.addParameter(
-            QgsProcessingParameterFeatureSink(
+            QgsProcessingParameterFileDestination(
                 self.OUTPUT,
-                tr('Output layer')
+                tr('Output File'),
+                'csv(*.csv)',
             )
         )
 
@@ -98,32 +99,26 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
 
-        layers = self.parameterAsLayerList(parameters, self.INPUT, context)
-        merged_layer = self.merge_layers(layers, feedback)
-        intersections = self.get_common_intersection(merged_layer, feedback)
-        (sink, dest_id) = self.parameterAsSink(
-            parameters, self.OUTPUT,
-            context, QgsFields(),
-            QgsWkbTypes.Point,
-            merged_layer.sourceCrs()
-        )
-
-        feedback.pushInfo('Creating a layer')
-
-        for point in intersections:
-            if feedback.isCanceled():
-                break
-
-            feature = QgsFeature()
-            feature.setGeometry(QgsGeometry().fromPointXY(QgsPointXY(point[0], point[1])))
-            sink.addFeature(feature, QgsFeatureSink.FastInsert)
+        layer = self.parameterAsVectorLayer(parameters, self.INPUT, context)
+        output = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
+        intersections = self.get_common_intersection(layer, feedback)
 
         feedback.setProgress(100)
 
-        layer_names = ' '.join([layer.name() for layer in layers])
+        header = [
+            'layer',
+            'number of intersections'
+        ]
+        row = [{
+            header[0]: layer.name(),
+            header[1]: len(intersections)
+        }]
+
+        if output:
+            feedback.pushInfo(tr('Writing to file'))
+            write_to_file(output, header, row, ';')
 
         return {
-            'Layers': layer_names,
             'The number of intersections': len(intersections)
             }
 
