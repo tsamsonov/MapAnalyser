@@ -46,7 +46,7 @@ from qgis.core import (QgsFeatureRequest,
                        QgsWkbTypes)
 from qgis.utils import iface
 
-from .utils import get, get_formatted_ratios_result, update_unique_values, get_unique_values_ratios, get_formatted_result
+from .utils import get, get_formatted_ratios_result, update_unique_values, get_formatted_result, get_unique_values_ratio, get_ave_unique_values_ratio
 from ..utils import tr, raise_exception, write_to_file, define_help_info
 
 
@@ -235,11 +235,15 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             self.progress = int(current * total)
             feedback.setProgress(self.progress)
 
+        uniq_values_number = get_unique_values_ratio(unique_values_per_field, features_count)
+        ave_uniq_values_number = get_ave_unique_values_ratio(uniq_values_number, len(fields))
+
         header = [
             'layer',
             'field count',
             'features count',
-            'unique values ratios',
+            'uniq values number',
+            'ave uniq values',
             'common length',
             'number of points',
             'number of bends',
@@ -256,25 +260,19 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             header[0]: layer.name(),
             header[1]: len(fields),
             header[2]: features_count,
-            header[3]: (
-                get_formatted_ratios_result(
-                    get_unique_values_ratios(
-                        unique_values_per_field, features_count,
-                        len(fields)
-                    )
-                )
-            ),
-            header[4]: get_formatted_result(common_length),
-            header[5]: points_num,
-            header[6]: bend_num,
-            header[7]: get_formatted_result(ave_bend_area / bend_num) if bend_num > 0 else 0.0,
-            header[8]: get_formatted_result(ave_bend_base_line_len / bend_num) if bend_num > 0 else 0.0,
-            header[9]: get_formatted_result(ave_bend_height / bend_num) if bend_num > 0 else 0.0,
-            header[10]: get_formatted_result(ave_bend_length / bend_num) if bend_num > 0 else 0.0,
-            header[11]: get_formatted_result(total_polygon_area),
-            header[12]: get_formatted_result(total_polygon_perimetr),
-            header[13]: get_formatted_result(total_polygon_area / count) if count > 0 else 0.0,
-            header[14]: get_formatted_result(total_polygon_perimetr / count) if count > 0 else 0.0,
+            header[3]: uniq_values_number,
+            header[4]: ave_uniq_values_number,
+            header[5]: get_formatted_result(common_length),
+            header[6]: points_num,
+            header[7]: bend_num,
+            header[8]: get_formatted_result(ave_bend_area / bend_num) if bend_num > 0 else 0.0,
+            header[9]: get_formatted_result(ave_bend_base_line_len / bend_num) if bend_num > 0 else 0.0,
+            header[10]: get_formatted_result(ave_bend_height / bend_num) if bend_num > 0 else 0.0,
+            header[11]: get_formatted_result(ave_bend_length / bend_num) if bend_num > 0 else 0.0,
+            header[12]: get_formatted_result(total_polygon_area),
+            header[13]: get_formatted_result(total_polygon_perimetr),
+            header[14]: get_formatted_result(total_polygon_area / count) if count > 0 else 0.0,
+            header[15]: get_formatted_result(total_polygon_perimetr / count) if count > 0 else 0.0,
         }]
 
         if output:

@@ -326,23 +326,36 @@ def update_unique_values(feature, indexes, unique_values_per_field):
         unique_values_per_field[index].add(attributes[index])
 
 
-def get_unique_values_ratios(unique_values_per_field, feature_count, fields_count):
+def get_unique_values_ratio(unique_values_per_field, feature_count):
     """
     This method calculates the ratio of unique values
 
     :param unique_values_per_field: dictionary of sets with unique values
     :param feature_count: the number of features in the layer
-    :param fields: the number of fields in the layer data provider
     """
 
     unique_values_ratio = 0.0
-    unique_values_ratio_by_fields_count = 0.0
 
     if feature_count:
         for value in unique_values_per_field.values():
             unique_values_ratio += len(value)
 
         unique_values_ratio = round(unique_values_ratio / feature_count, 3)
+
+    return unique_values_ratio
+
+
+def get_ave_unique_values_ratio(unique_values_ratio, fields_count):
+    """
+    This method calculates the ave ratio of unique values
+
+    :param unique_values_ratio: the ratio of unique values
+    :param fields_count: the number of fields in the layer data provider
+    """
+
+    unique_values_ratio_by_fields_count = 0.0
+
+    if fields_count:
         unique_values_ratio_by_fields_count = round(unique_values_ratio / fields_count, 3)
 
-    return (unique_values_ratio, unique_values_ratio_by_fields_count)
+    return unique_values_ratio_by_fields_count
