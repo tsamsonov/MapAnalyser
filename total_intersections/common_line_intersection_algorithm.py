@@ -81,7 +81,8 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterVectorLayer(
                 self.INPUT,
-                tr('Input layer')
+                tr('Input layer'),
+                [QgsWkbTypes.LineGeometry]
             )
         )
 
@@ -100,6 +101,12 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         """
 
         layer = self.parameterAsVectorLayer(parameters, self.INPUT, context)
+
+        if layer.geometryType() != QgsWkbTypes.LineGeometry:
+            return {
+            'Exception': 'layer geometry type != QgsWkbTypes.LineGeometry'
+            }
+
         output = self.parameterAsFileOutput(parameters, self.OUTPUT, context)
         intersections = self.get_common_intersection(layer, feedback)
 
