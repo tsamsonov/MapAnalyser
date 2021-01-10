@@ -141,7 +141,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
 
         unique_values_per_field = {key: set() for key in indexes}
         points_num = 0
-        common_length = 0
+        total_length = 0
         bend_num = 0
         ave_bend_area = 0.0
         ave_bend_base_line_len = 0.0
@@ -161,7 +161,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             is_single_type = QgsWkbTypes.isSingleType(geom.wkbType())
 
             if geom.type() == QgsWkbTypes.LineGeometry:
-                common_length += geom.length()
+                total_length += geom.length()
 
                 if is_single_type:
                     data_list = [(v.x(), v.y()) for v in geom.vertices()]
@@ -193,7 +193,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
                         ave_bend_height += result[4]
                         ave_bend_length += result[5]
             elif geom.type() == QgsWkbTypes.PolygonGeometry:
-                common_length += geom.length()
+                total_length += geom.length()
 
                 if is_single_type:
                     data_list = [(v.x(), v.y()) for v in geom.vertices()]
@@ -241,14 +241,14 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             'features count',
             'uniq values number',
             'ave uniq values',
-            'common length',
+            'total length',
             'number of points',
             'number of bends',
             'average area of bends',
             'average length of bends baseline',
             'average height of bends',
             'average length of the bends',
-            'common polygons area',
+            'total polygons area',
             'average polygons area',
             'average length',
         ]
@@ -258,7 +258,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             header[2]: features_count,
             header[3]: uniq_values_number,
             header[4]: ave_uniq_values_number,
-            header[5]: get_formatted_result(common_length),
+            header[5]: get_formatted_result(total_length),
             header[6]: points_num,
             header[7]: bend_num,
             header[8]: get_formatted_result(ave_bend_area / bend_num) if bend_num > 0 else 0.0,
@@ -267,7 +267,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             header[11]: get_formatted_result(ave_bend_length / bend_num) if bend_num > 0 else 0.0,
             header[12]: get_formatted_result(total_polygon_area),
             header[13]: get_formatted_result(total_polygon_area / count) if count > 0 else 0.0,
-            header[14]: get_formatted_result(common_length / count) if count > 0 else 0.0,
+            header[14]: get_formatted_result(total_length / count) if count > 0 else 0.0,
         }]
 
         if output:
