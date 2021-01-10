@@ -148,7 +148,6 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         ave_bend_height = 0.0
         ave_bend_length = 0.0
         total_polygon_area = 0.0
-        total_polygon_perimetr = 0.0
         count = 0.0
 
         total = 100.0 / features_count if features_count > 0 else 0
@@ -211,7 +210,6 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
                     ave_bend_height += result[4]
                     ave_bend_length += result[5]
                     total_polygon_area += geom.area()
-                    total_polygon_perimetr += geom.length()
                 else:
                     for part in geom.parts():
                         data_list = [(v.x(), v.y()) for v in part.vertices()]
@@ -228,7 +226,6 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
                         ave_bend_height += result[4]
                         ave_bend_length += result[5]
                     total_polygon_area += geom.area()
-                    total_polygon_perimetr += geom.length()
             else:
                 break
 
@@ -253,7 +250,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             'average length of the bends',
             'common polygons area',
             'average polygons area',
-            'average polygons perimetr',
+            'average length',
         ]
         row = [{
             header[0]: layer.name(),
@@ -270,7 +267,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             header[11]: get_formatted_result(ave_bend_length / bend_num) if bend_num > 0 else 0.0,
             header[12]: get_formatted_result(total_polygon_area),
             header[13]: get_formatted_result(total_polygon_area / count) if count > 0 else 0.0,
-            header[14]: get_formatted_result(total_polygon_perimetr / count) if count > 0 else 0.0,
+            header[14]: get_formatted_result(common_length / count) if count > 0 else 0.0,
         }]
 
         if output:
