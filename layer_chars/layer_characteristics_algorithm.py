@@ -251,6 +251,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             'total_polygons_area',
             'average_polygons_area',
             'average_length',
+            'layer_type',
         ]
         row = [{
             header[0]: layer.name(),
@@ -268,6 +269,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             header[12]: get_formatted_result(total_polygon_area),
             header[13]: get_formatted_result(total_polygon_area / count) if count > 0 else 0.0,
             header[14]: get_formatted_result(total_length / count) if count > 0 else 0.0,
+            header[15]: QgsWkbTypes.geometryDisplayString(int(layer.geometryType())),
         }]
 
         if output:
