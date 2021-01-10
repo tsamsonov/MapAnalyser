@@ -143,7 +143,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         points_num = 0
         total_length = 0
         bend_num = 0
-        ave_bend_area = 0.0
+        total_bend_area = 0.0
         ave_bend_base_line_len = 0.0
         ave_bend_height = 0.0
         ave_bend_length = 0.0
@@ -173,7 +173,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
                     count = count + 1
                     points_num += result[0]
                     bend_num += result[1]
-                    ave_bend_area += result[2]
+                    total_bend_area += result[2]
                     ave_bend_base_line_len += result[3]
                     ave_bend_height += result[4]
                     ave_bend_length += result[5]
@@ -188,7 +188,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
                         count = count + 1
                         points_num += result[0]
                         bend_num += result[1]
-                        ave_bend_area += result[2]
+                        total_bend_area += result[2]
                         ave_bend_base_line_len += result[3]
                         ave_bend_height += result[4]
                         ave_bend_length += result[5]
@@ -205,7 +205,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
                     count = count+1
                     points_num += result[0]
                     bend_num += result[1]
-                    ave_bend_area += result[2]
+                    total_bend_area += result[2]
                     ave_bend_base_line_len += result[3]
                     ave_bend_height += result[4]
                     ave_bend_length += result[5]
@@ -221,7 +221,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
                         count = count + 1
                         points_num += result[0]
                         bend_num += result[1]
-                        ave_bend_area += result[2]
+                        total_bend_area += result[2]
                         ave_bend_base_line_len += result[3]
                         ave_bend_height += result[4]
                         ave_bend_length += result[5]
@@ -252,6 +252,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             'average_polygons_area',
             'average_length',
             'layer_type',
+            'total_bends_area'
         ]
         row = [{
             header[0]: layer.name(),
@@ -262,7 +263,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             header[5]: get_formatted_result(total_length),
             header[6]: points_num,
             header[7]: bend_num,
-            header[8]: get_formatted_result(ave_bend_area / bend_num) if bend_num > 0 else 0.0,
+            header[8]: get_formatted_result(total_bend_area / bend_num) if bend_num > 0 else 0.0,
             header[9]: get_formatted_result(ave_bend_base_line_len / bend_num) if bend_num > 0 else 0.0,
             header[10]: get_formatted_result(ave_bend_height / bend_num) if bend_num > 0 else 0.0,
             header[11]: get_formatted_result(ave_bend_length / bend_num) if bend_num > 0 else 0.0,
@@ -270,6 +271,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             header[13]: get_formatted_result(total_polygon_area / count) if count > 0 else 0.0,
             header[14]: get_formatted_result(total_length / count) if count > 0 else 0.0,
             header[15]: QgsWkbTypes.geometryDisplayString(int(layer.geometryType())),
+            header[16]: get_formatted_result(total_bend_area),
         }]
 
         if output:
