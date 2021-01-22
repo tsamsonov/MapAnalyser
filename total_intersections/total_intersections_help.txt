@@ -1,5 +1,6 @@
-This is an algorithm that calculates the total number of intersections of linear layers.
+This is an algorithm that calculates the total number of intersections of linear and polygon layers.
 The steps of the algorithm:
+0. Converting polygon layers to linear layers
 1. Merge layers
 2. Find end points of lines
 3. Find intersections (this may take a long time, please keep calm)
