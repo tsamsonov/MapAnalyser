@@ -98,6 +98,13 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
         layers = filter_layers(self.parameterAsLayerList(parameters, self.INPUT, context))
+        result = {
+            'Layers': 'missing layers with the right geometry',
+            'The number of intersections': 0
+            }
+
+        if not layers:
+            return result
 
         feedback.setProgress(10)
         feedback.pushInfo(tr('Merging layers'))
@@ -124,14 +131,11 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
             feature.setGeometry(QgsGeometry().fromPointXY(QgsPointXY(point[0], point[1])))
             sink.addFeature(feature, QgsFeatureSink.FastInsert)
 
+        result['Layers'] = ' '.join([layer.name() for layer in layers])
+        result['The number of intersections'] = len(intersections)
         feedback.setProgress(100)
 
-        layer_names = ' '.join([layer.name() for layer in layers])
-
-        return {
-            'Layers': layer_names,
-            'The number of intersections': len(intersections)
-            }
+        return result
 
 
     def name(self):

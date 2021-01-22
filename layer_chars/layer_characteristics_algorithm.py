@@ -47,7 +47,7 @@ from qgis.core import (QgsFeatureRequest,
 from qgis.utils import iface
 
 from .utils import get, get_formatted_ratios_result, update_unique_values, get_formatted_result, get_unique_values_ratio, get_ave_unique_values_ratio
-from ..utils import tr, raise_exception, write_to_file, define_help_info
+from ..utils import tr, raise_exception, write_to_file, define_help_info, filter_layers, get_total_intersection
 
 
 class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
@@ -149,6 +149,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         ave_bend_length = 0.0
         total_polygon_area = 0.0
         count = 0.0
+        total_intersections = 0
 
         total = 100.0 / features_count if features_count > 0 else 0
 
@@ -235,6 +236,12 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
         uniq_values_number = get_unique_values_ratio(unique_values_per_field, features_count)
         ave_uniq_values_number = get_ave_unique_values_ratio(uniq_values_number, len(fields))
 
+        feedback.pushInfo('Total intersections:')
+        filtered_layers = filter_layers([layer])
+
+        if filtered_layers:
+            total_intersections = len(get_total_intersection(filtered_layers[0], feedback))
+
         header = [
             'layer',
             'field_count',
@@ -252,7 +259,8 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             'average_polygons_area',
             'average_length',
             'layer_type',
-            'total_bends_area'
+            'total_bends_area',
+            'total_intersections',
         ]
         row = [{
             header[0]: layer.name(),
@@ -272,6 +280,7 @@ class LayerCharacteristicsAlgorithm(QgsProcessingAlgorithm):
             header[14]: get_formatted_result(total_length / count) if count > 0 else 0.0,
             header[15]: QgsWkbTypes.geometryDisplayString(int(layer.geometryType())),
             header[16]: get_formatted_result(total_bend_area),
+            header[17]: get_formatted_result(total_intersections),
         }]
 
         if output:
