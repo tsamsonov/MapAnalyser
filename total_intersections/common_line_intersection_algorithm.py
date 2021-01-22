@@ -46,7 +46,7 @@ from qgis.core import (QgsProcessing,
                        QgsPointXY,
                        QgsFields)
 
-from ..utils import tr, raise_exception, define_help_info
+from ..utils import tr, raise_exception, define_help_info, filter_layers, get_total_intersection, merge_layers
 
 
 class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
@@ -97,9 +97,16 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
         """
         Here is where the processing itself takes place.
         """
-        layers = self.filter_layers(self.parameterAsLayerList(parameters, self.INPUT, context))
-        merged_layer = self.merge_layers(layers, feedback)
-        intersections = self.get_common_intersection(merged_layer, feedback)
+        layers = filter_layers(self.parameterAsLayerList(parameters, self.INPUT, context))
+
+        feedback.setProgress(10)
+        feedback.pushInfo(tr('Merging layers'))
+        merged_layer = merge_layers(layers)
+        feedback.setProgress(20)
+
+        intersections = get_total_intersection(merged_layer, feedback)
+        feedback.setProgress(90)
+
         (sink, dest_id) = self.parameterAsSink(
             parameters, self.OUTPUT,
             context, QgsFields(),
@@ -125,146 +132,6 @@ class CommonIntersectionAlgorithm(QgsProcessingAlgorithm):
             'Layers': layer_names,
             'The number of intersections': len(intersections)
             }
-
-
-    def get_common_intersection(self, layer, feedback):
-        """
-        This method calculates the number of line intersections
-
-        :param layer: Vector layer
-        :param feedback: Feedback from a processing algorithm
-        """
-
-        if not layer:
-            raise_exception('layer is empty')
-        if not feedback:
-            raise_exception('feedback is empty')
-        if layer.geometryType() != QgsWkbTypes.LineGeometry:
-            raise_exception('layer geometry is not line geometry')
-
-        feedback.pushInfo(tr('Receiving endpoints of the lines'))
-
-        end_points = {}
-
-        for feature in layer.getFeatures():
-            geom = feature.geometry()
-
-            for part in geom.parts():
-                verts = list(part.vertices())
-                start_v = verts[0]
-                start_v_cortege = (start_v.x(), start_v.y())
-
-                if start_v_cortege in end_points:
-                    end_points[start_v_cortege] += 1
-                else:
-                    end_points[start_v_cortege] = 1
-
-                end_v = verts[-1]
-                end_v_cortege = (end_v.x(), end_v.y())
-
-                if end_v_cortege in end_points:
-                    end_points[end_v_cortege] += 1
-                else:
-                    end_points[end_v_cortege] = 1
-
-        feedback.setProgress(30)
-        feedback.pushInfo(tr('Getting intersection points (this can take a long time (the more lines, the more time))'))
-
-        intersections_proc_params = {
-            'INPUT': layer,
-            'INTERSECT': layer,
-            'OUTPUT': 'memory:'
-            }
-        result = processing.run(
-            'qgis:lineintersections',
-            intersections_proc_params
-            )
-        intersections_layer = result['OUTPUT']
-
-        feedback.setProgress(80)
-
-        set_of_intersections = set((f.geometry().asPoint().x(), f.geometry().asPoint().y()) for f in intersections_layer.getFeatures())
-
-        feedback.pushInfo(tr('Getting true intersection points'))
-
-        intersections = self.get_true_intersections(set_of_intersections, end_points) if set_of_intersections else []
-
-        feedback.setProgress(90)
-
-        return intersections
-
-
-    def get_true_intersections(self, intersections, end_points):
-        """
-        This method calculates true line intersections
-
-        :param intersections: Total set of intersections
-        :param end_points: End points of lines
-        """
-
-        if not intersections:
-            raise_exception('intersections is empty')
-        if not end_points:
-            raise_exception('end_points is empty')
-
-        true_intersections = set()
-
-        for point_cortege in intersections:
-            if point_cortege in end_points:
-                if end_points[point_cortege] != 2:
-                    true_intersections.add(point_cortege)
-            else:
-                true_intersections.add(point_cortege)
-
-        return true_intersections
-
-    def merge_layers(self, layers, feedback):
-        """
-        This method merges layers
-
-        :param layers: Vector layers
-        :param feedback: Feedback from a processing algorithm
-        """
-
-        if not layers:
-            raise_exception('layers is empty')
-        if not feedback:
-            raise_exception('feedback is empty')
-
-        feedback.pushInfo(tr('Merging layers'))
-        feedback.setProgress(10)
-
-        merge_proc_params = {
-            'LAYERS': layers,
-            'OUTPUT': 'memory:'
-            }
-
-        result = processing.run('qgis:mergevectorlayers', merge_proc_params, None)
-        merged_layers_map = result['OUTPUT']
-
-        feedback.setProgress(20)
-
-        return merged_layers_map
-
-
-    def filter_layers(self, layers):
-        """
-        Converts a polygon geometry layers in the line geometry layers
-
-        :param layers: Vector layers
-        """
-        filtered_layers = []
-
-        for layer in layers:
-            if layer.geometryType() == QgsWkbTypes.PolygonGeometry:
-                name = layer.name()
-                line_layer = processing.run("native:polygonstolines", {'INPUT': layer, 'OUTPUT':'TEMPORARY_OUTPUT'})["OUTPUT"]
-                line_layer.setName(name)
-                filtered_layers.append(line_layer)
-            elif layer.geometryType() == QgsWkbTypes.LineGeometry:
-                filtered_layers.append(layer)
-
-        return filtered_layers
 
 
     def name(self):
