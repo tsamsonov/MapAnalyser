@@ -11,7 +11,7 @@ p.s. if you are having problems with pip, try the following steps, and then repe
 1. check pip version: pip --version;
 2. if you get an error, you should install pip in QGIS Python;
 3. open OSGeo4W Shell;
-4. go to any non-system folder (for example to Desktop: (windows 10) cd C:/users/danii/Desktop);
+4. go to any non-system folder (for example to Desktop: (windows 10) cd C:/users/UserName/Desktop);
 5. use the command: curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py;
 6. use the command: python get-pip.py
 7. close OSGeo4W Shell.
