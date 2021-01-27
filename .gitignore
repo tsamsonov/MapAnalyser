@@ -138,4 +138,4 @@ dmypy.json
 cython_debug/
 
 *.pyc
-layer_chars_old/
+/mapanalyser/layer_chars_old/
