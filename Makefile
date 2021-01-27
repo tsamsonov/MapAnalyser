@@ -5,7 +5,7 @@
 #							 -------------------
 #		begin				: 2020-07-10
 #		git sha				: $Format:%H$
-#		copyright			: (C) 2020 by YSU
+#		copyright			: (C) 2020 by Potemkin D.A., Yakimova O.P
 #		email				: daniilpot@yandex.ru
 # ***************************************************************************/
 #
