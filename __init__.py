@@ -37,7 +37,7 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    REQ_PATH = 'requirements.txt'
+    REQ_PATH = 'requirements.json'
     README_PATH = 'readme_imports.txt'
     # check packages
     directory = os.path.dirname(__file__)

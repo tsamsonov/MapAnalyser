@@ -4,6 +4,7 @@
 import os
 import csv
 import importlib.util
+import json
 import processing
 
 from PyQt5.QtCore import QCoreApplication
@@ -77,14 +78,14 @@ def check(req_path, readme_path):
 
     try:
         with open(req_path, 'r') as f:
-            packages = [line.strip() for line in f]
+            packages = json.load(f)
     except Exception:
         QgsMessageLog.logMessage(
-            "Problem while reading requirements.txt",
+            "Problem while reading requirements.json",
             level=Qgis.Warning)
 
     not_installed_packages = [
-        package_name for package_name in packages
+        packages[package_name] for package_name in packages
         if not importlib.util.find_spec(package_name)
         ]
     message = f"Some packages are not installed ({','.join(not_installed_packages)}). "

@@ -1,0 +1,5 @@
+{
+    "numpy" : "numpy",
+    "numba" : "numba",
+    "cv2": "opencv-python"
+}
