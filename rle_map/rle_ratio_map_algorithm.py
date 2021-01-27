@@ -49,7 +49,7 @@ from qgis.PyQt.QtGui import QColor
 from qgis.utils import iface
 
 # more imports
-from mapanalyser.rle.rle_compression_ratio import get_ratio_with_abs_comparator, get_ratio_with_simple_comparator
+from ..rle.rle_compression_ratio import get_ratio_with_abs_comparator, get_ratio_with_simple_comparator
 from ..utils import tr, define_help_info, raise_exception, write_to_file
 
 

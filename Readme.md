@@ -16,9 +16,9 @@
 
     6) Close and reopen QGIS
 
-    7) Go to Plugins -> Manage and install Plugins -> Click in the box next to Map Analyzer plugin -> close Plugin manager
+    7) Go to Plugins -> Manage and install Plugins -> Click in the box next to Map Analyser plugin -> close Plugin manager
 
-    8) Find Map Analyzer in the Toolbox
+    8) Find Map Analyser in the Toolbox
 
     9) Enjoy!
 #
