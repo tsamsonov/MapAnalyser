@@ -11,7 +11,7 @@ name=Map Analyser
 qgisMinimumVersion=3.0
 description=This tool will help you analyze the map
 version=0.1
-author=YSU
+author=Potemkin D.A., Yakimova O.P.
 email=daniilpot@yandex.ru
 
 about=This tool will help you analyze the map.

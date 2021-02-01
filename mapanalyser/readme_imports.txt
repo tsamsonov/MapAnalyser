@@ -1,4 +1,4 @@
-You can find all the necessary packages in the "requirements.txt"
+You can find all the necessary packages in the "requirements.json"
 -------------------------------------------------------
 
 How to install missing packages (for example "numba" package):
