@@ -34,7 +34,9 @@ from qgis.core import QgsProcessingProvider
 from .rle_map.rle_ratio_map_algorithm import RLERatioOfMapAlgorithm
 from .rle_image.rle_ratio_image_algorithm import RLERatioOfImageAlgorithm
 from .layer_chars.layer_characteristics_algorithm import LayerCharacteristicsAlgorithm
+from .layer_chars.layer_characteristics_gpkg_algorithm import LayerCharacteristicsGpkgAlgorithm
 from .total_intersections.common_line_intersection_algorithm import CommonIntersectionAlgorithm
+from .total_intersections.common_line_intersection_gpkg_algorithm import CommonIntersectionAlgorithmGpkg
 
 
 class MapAnalyserProvider(QgsProcessingProvider):
@@ -46,7 +48,9 @@ class MapAnalyserProvider(QgsProcessingProvider):
         self.alglist = [RLERatioOfMapAlgorithm(),
                         RLERatioOfImageAlgorithm(),
                         LayerCharacteristicsAlgorithm(),
-                        CommonIntersectionAlgorithm()]
+                        LayerCharacteristicsGpkgAlgorithm(),
+                        CommonIntersectionAlgorithm(),
+                        CommonIntersectionAlgorithmGpkg()]
 
     def unload(self):
         """
